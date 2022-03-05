@@ -1,24 +1,24 @@
 import PySimpleGUI as sg
 
 ############################## CREATE UI ###########################################
-sg.theme("Dark Blue 3")
+sg.theme("LightGrey1")
 layout = [[sg.Text(text="Choose destination folder: ",
                    justification="right",
                    size=(20, 1)),
            sg.Input(size=(50, 50),
-                    pad=1),
+                    pad=1, disabled=True),
            sg.FolderBrowse(key="-IN-",
                            size=(10, 1))],
           [sg.Text("Choose input PDF files: ",
                    justification="right",
                    size=(20, 1)),
               sg.Input(size=(50, 50),
-                       pad=1),
+                       pad=1, disabled=True),
               sg.FilesBrowse(key="-IN1-",
                              size=(10, 1))],
           [sg.Button("RUN",
                      size=(10, 1),
-                     pad=((430, 10), (2, 2))),
+                     pad=((426, 10), (2, 2))),
            sg.Button("Cancel",
            size=(10, 1),
               pad=((10, 10), (2, 2)))]]
@@ -30,6 +30,6 @@ while True:
     if event == sg.WIN_CLOSED or event == "Cancel":
         break
     elif event == "RUN":
-        destination_folder = values["-IN-"]
-        PDF_files = values["-IN1-"]
+        destination_folder = values["-IN-"] #store the link to destination folder
+        PDF_files = values["-IN1-"] #stored the input PDF files
 window.close()
