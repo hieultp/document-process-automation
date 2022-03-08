@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import PySimpleGUI as sg
@@ -29,7 +29,8 @@ def init_tmp_dir():
         rm_files(TMP_DIR)
 
 
-def clean_tmp_dir():
+def clean_tmp_dir(page_as_img: Image.Image):
+    page_as_img.close()
     rm_files(TMP_DIR)
 
 
@@ -40,12 +41,27 @@ def get_page_as_img(pdf_file: Document):
     return img, pix.tobytes(), pix.height, pix.width
 
 
-def init_viz_window(pdf_files: List[Document], current_doc: int):
-    page_as_img, img_data, height, width = get_page_as_img(pdf_files[current_doc])
-    vizWindow, graph = get_viz_window(height, width)
-    graph.draw_image(data=img_data, location=(0, 0))
+def viz_next_doc(graph: sg.Graph, pdf_files: List[Document], current_doc: int):
     current_doc += 1
-    return vizWindow, graph, page_as_img, current_doc
+    graph.erase()
+    page_as_img, img_data, _, _ = get_page_as_img(pdf_files[current_doc])
+    graph.draw_image(data=img_data, location=(0, 0))
+    return page_as_img, current_doc
+
+
+def do_ocr(
+    ocr: PaddleOCR,
+    img: Image.Image,
+    start_point: Tuple[int, int],
+    end_point: Tuple[int, int],
+):
+    # TODO: Handle different cases with start_point, end_point
+    if start_point is None or end_point is None:
+        return None
+
+    crop = img.crop((*start_point, *end_point))
+    text = ocr.ocr(np.asarray(crop), det=False)
+    return text[0][0] if text else None
 
 
 if __name__ == "__main__":
@@ -112,13 +128,12 @@ if __name__ == "__main__":
 
                 # Init visualization window
                 init_tmp_dir()
-                vizWindow, graph, page_as_img, current_doc = init_viz_window(
-                    pdf_files, current_doc
+                page_as_img, img_data, height, width = get_page_as_img(
+                    pdf_files[current_doc]
                 )
+                vizWindow, graph = get_viz_window(height, width, img_data)
 
         if window == vizWindow:
-            print(event)
-
             if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
                 break
 
@@ -137,25 +152,38 @@ if __name__ == "__main__":
                     )
             elif event.endswith("+UP"):  # The drawing has ended because mouse up
                 info = window["info"]
-                # TODO: Handle different cases with start_point, end_point
-                crop = page_as_img.crop((*start_point, *end_point))
-                text = ocr.ocr(np.asarray(crop), det=False)
-                if text:
-                    filename = text[0][0]
-                    info.update(value=f"Text: {filename}")
-                # start_point, end_point = None, None  # enable grabbing a new rect
+                text = do_ocr(ocr, page_as_img, start_point, end_point)
+                update_str = f"Page {current_doc * step + 1}/{len(pdf_files) * step} | "
+                if text is not None:
+                    update_str = update_str + f"Text: {text}"
+                info.update(value=update_str)
                 dragging = False
+            elif event in (
+                "OK",
+                "e",
+                "<Enter>",
+            ):  # "e,<Enter>" key will behave like an "OK" event
+                clean_tmp_dir(page_as_img)
+                save_pdf(pdf_files[current_doc], destination_folder / f"{text}.pdf")
+                if current_doc + 1 < len(pdf_files):
+                    page_as_img, current_doc = viz_next_doc(
+                        graph, pdf_files, current_doc
+                    )
+                    prior_rect = graph.draw_rectangle(
+                        start_point, end_point, line_color="red"
+                    )
+                    text = do_ocr(ocr, page_as_img, start_point, end_point)
+                    update_str = (
+                        f"Page {current_doc * step + 1}/{len(pdf_files) * step} | "
+                    )
+                    if text is not None:
+                        update_str = update_str + f"Text: {text}"
+                    info.update(value=update_str)
+                    start_point, end_point = None, None  # enable grabbing a new rect
+                else:
+                    sg.popup(
+                        "All files have been processed! Exit now...", title="Notification",
+                    )
+                    break
             else:
                 print("Unhandled event", event, values)
-
-            if event == "OK":
-                vizWindow.close()
-                vizWindow = None
-                # clean_tmp_dir()
-                save_pdf(pdf_files[current_doc], destination_folder / f"{filename}.pdf")
-                vizWindow, graph, page_as_img, current_doc = init_viz_window(
-                    pdf_files, current_doc
-                )
-                prior_rect = graph.draw_rectangle(
-                    start_point, end_point, line_color="red"
-                )

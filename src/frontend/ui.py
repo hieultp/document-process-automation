@@ -31,7 +31,7 @@ def get_main_window():
     )
 
 
-def get_viz_window(height=800, width=800):
+def get_viz_window(height=800, width=800, img_data=None):
     graph = sg.Graph(
         canvas_size=(width, height),
         graph_bottom_left=(0, height),
@@ -46,10 +46,10 @@ def get_viz_window(height=800, width=800):
     layout = [
         [graph, sg.Text(key="info", size=(60, 1)), sg.OK(), sg.Exit()],
     ]
-
-    return (
-        sg.Window(
-            "OCR", layout, finalize=True, resizable=True, return_keyboard_events=True
-        ),
-        graph,
+    window = sg.Window(
+        "OCR", layout, finalize=True, resizable=True, return_keyboard_events=True
     )
+    if img_data is not None:
+        graph.draw_image(data=img_data, location=(0, 0))
+
+    return window, graph
