@@ -151,7 +151,7 @@ if __name__ == "__main__":
                         start_point, end_point, line_color="red"
                     )
             elif event.endswith("+UP"):  # The drawing has ended because mouse up
-                info = window["info"]
+                info = window["-INFO-"]
                 text = do_ocr(ocr, page_as_img, start_point, end_point)
                 update_str = f"Page {current_doc * step + 1}/{len(pdf_files) * step} | "
                 if text is not None:
@@ -182,7 +182,8 @@ if __name__ == "__main__":
                     start_point, end_point = None, None  # enable grabbing a new rect
                 else:
                     sg.popup(
-                        "All files have been processed! Exit now...", title="Notification",
+                        "All files have been processed! Exit now...",
+                        title="Notification",
                     )
                     break
             else:
