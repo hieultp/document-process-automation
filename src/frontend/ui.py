@@ -47,4 +47,9 @@ def get_viz_window(height=800, width=800):
         [graph, sg.Text(key="info", size=(60, 1)), sg.OK(), sg.Exit()],
     ]
 
-    return sg.Window("OCR", layout, resizable=True, finalize=True), graph
+    return (
+        sg.Window(
+            "OCR", layout, finalize=True, resizable=True, return_keyboard_events=True
+        ),
+        graph,
+    )
