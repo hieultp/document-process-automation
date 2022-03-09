@@ -1,4 +1,5 @@
 from cgitb import enable
+from re import S
 import PySimpleGUI as sg
 from numpy import block
 
@@ -44,12 +45,20 @@ def get_viz_window(height=800, width=800, img_data=None):
         expand_y=False,
     )
     layout = [
-        [sg.Text(key="-INFO-", size=(10, 1)), sg.Input(key="-OCR-STR-", size=(20, 1),),],
-        [sg.OK(), sg.Exit(),],
+        [
+            sg.Text(text="Page ",key="-INFO-", size=(10, 1)),
+            sg.Input(key="-OCR-STR-", size=(20, 1),),
+        ],
+        [sg.OK(size=(10,1)), sg.Exit(size=(10,1)),],
         [graph],
     ]
     window = sg.Window(
-        "OCR", layout, finalize=True, resizable=True, return_keyboard_events=True
+        "OCR",
+        layout,
+        finalize=True,
+        resizable=True,
+        return_keyboard_events=True,
+        element_justification="center",
     )
     if img_data is not None:
         graph.draw_image(data=img_data, location=(0, 0))
