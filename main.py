@@ -64,6 +64,12 @@ def do_ocr(
     return text[0][0] if text else None
 
 
+def do_info_update(window, current_doc, total_files, step=1, ocr_text=None):
+    window["-INFO-"].update(value=f"Page {current_doc * step + 1}/{total_files * step}")
+    if ocr_text is not None:
+        window["-OCR-STR-"].update(value=text)
+
+
 if __name__ == "__main__":
     # Prepare the OCR model
     BASE_MODEL_PATH = Path(".paddleocr/2.4/ocr")
@@ -132,12 +138,13 @@ if __name__ == "__main__":
                     pdf_files[current_doc]
                 )
                 vizWindow, graph = get_viz_window(height, width, img_data)
-
+                vizWindow["-OCR-STR-"].block_focus(block=True)
         if window == vizWindow:
             if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
                 break
 
             if event == "-GRAPH-":  # if there's a "Graph" event, then it's a mouse
+                vizWindow["-OCR-STR-"].block_focus(block=True)
                 x, y = values["-GRAPH-"]
                 if not dragging:
                     start_point = (x, y)
@@ -152,19 +159,20 @@ if __name__ == "__main__":
                     )
             elif event.endswith("+UP"):  # The drawing has ended because mouse up
                 info = window["-INFO-"]
+                ocr_str = window["-OCR-STR-"]
+
                 text = do_ocr(ocr, page_as_img, start_point, end_point)
-                update_str = f"Page {current_doc * step + 1}/{len(pdf_files) * step} | "
-                if text is not None:
-                    update_str = update_str + f"Text: {text}"
-                info.update(value=update_str)
+                do_info_update(window, current_doc, len(pdf_files), step, ocr_text=text)
                 dragging = False
-            elif event in (
-                "OK",
-                "e",
-                "<Enter>",
-            ):  # "e,<Enter>" key will behave like an "OK" event
+            elif event in ("OK", "e"):  # "e,<Enter>" key will behave like an "OK" event
+                if (
+                    event == "e"
+                    and vizWindow.FindElementWithFocus() == vizWindow["-OCR-STR-"]
+                ):
+                    continue
                 clean_tmp_dir(page_as_img)
-                save_pdf(pdf_files[current_doc], destination_folder / f"{text}.pdf")
+                pdf_name = values["-OCR-STR-"]
+                save_pdf(pdf_files[current_doc], destination_folder / f"{pdf_name}.pdf")
                 if current_doc + 1 < len(pdf_files):
                     page_as_img, current_doc = viz_next_doc(
                         graph, pdf_files, current_doc
@@ -173,12 +181,9 @@ if __name__ == "__main__":
                         start_point, end_point, line_color="red"
                     )
                     text = do_ocr(ocr, page_as_img, start_point, end_point)
-                    update_str = (
-                        f"Page {current_doc * step + 1}/{len(pdf_files) * step} | "
+                    do_info_update(
+                        window, current_doc, len(pdf_files), step, ocr_text=text
                     )
-                    if text is not None:
-                        update_str = update_str + f"Text: {text}"
-                    info.update(value=update_str)
                     start_point, end_point = None, None  # enable grabbing a new rect
                 else:
                     sg.popup(
@@ -186,5 +191,3 @@ if __name__ == "__main__":
                         title="Notification",
                     )
                     break
-            else:
-                print("Unhandled event", event, values)
