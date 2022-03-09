@@ -44,14 +44,11 @@ def get_viz_window(height=800, width=800, img_data=None):
     layout = [
         [
             sg.Text(key="-INFO-", size=(10, 1)),
-            sg.Input(
-                key="-OCR-STR-",
-                size=(20, 1),
-            ),
+            sg.Input(key="-OCR-STR-", size=(20, 1)),
         ],
         [
-            sg.OK(bind_return_key=True),
-            sg.Exit(),
+            sg.OK(size=(10, 1), bind_return_key=True),
+            sg.Exit(size=(10, 1)),
         ],
         [graph],
     ]

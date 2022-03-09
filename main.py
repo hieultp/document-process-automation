@@ -139,9 +139,13 @@ if __name__ == "__main__":
                 )
                 vizWindow, graph = get_viz_window(height, width, img_data)
                 vizWindow["-OCR-STR-"].block_focus(block=True)
+                do_info_update(vizWindow, current_doc, len(pdf_files), step)
+
         if window == vizWindow:
             if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
-                break
+                vizWindow.close()
+                vizWindow = None
+                mainWindow.un_hide()
 
             if event == "-GRAPH-":  # if there's a "Graph" event, then it's a mouse
                 vizWindow["-OCR-STR-"].block_focus(block=True)
@@ -190,4 +194,6 @@ if __name__ == "__main__":
                         "All files have been processed! Exit now...",
                         title="Notification",
                     )
-                    break
+                    vizWindow.close()
+                    vizWindow = None
+                    mainWindow.un_hide()
