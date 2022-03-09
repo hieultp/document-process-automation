@@ -132,13 +132,13 @@ if __name__ == "__main__":
                     pdf_files[current_doc]
                 )
                 vizWindow, graph = get_viz_window(height, width, img_data)
-
+                vizWindow["-OCR-STR-"].block_focus(block=True)
         if window == vizWindow:
             if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
                 break
-
             if event == "-GRAPH-":  # if there's a "Graph" event, then it's a mouse
                 x, y = values["-GRAPH-"]
+                vizWindow["-OCR-STR-"].block_focus(block=True)
                 if not dragging:
                     start_point = (x, y)
                     dragging = True
@@ -152,19 +152,22 @@ if __name__ == "__main__":
                     )
             elif event.endswith("+UP"):  # The drawing has ended because mouse up
                 info = window["-INFO-"]
+                ocr_str = window["-OCR-STR-"]
                 text = do_ocr(ocr, page_as_img, start_point, end_point)
                 update_str = f"Page {current_doc * step + 1}/{len(pdf_files) * step} | "
                 if text is not None:
-                    update_str = update_str + f"Text: {text}"
+                    update_str = update_str
                 info.update(value=update_str)
+                ocr_str.update(value=text)
                 dragging = False
-            elif event in (
-                "OK",
-                "e",
-                "<Enter>",
+            elif (
+                (event in ("OK", "e", "<Enter>",))
+                and vizWindow.find_element_with_focus() != vizWindow["-OCR-STR-"]
             ):  # "e,<Enter>" key will behave like an "OK" event
+                # if event == "e" and vizWindow.FindElementWithFocus() != vizWindow["-OCR-STR-"]:
                 clean_tmp_dir(page_as_img)
-                save_pdf(pdf_files[current_doc], destination_folder / f"{text}.pdf")
+                pdf_name = values["-OCR-STR-"]
+                save_pdf(pdf_files[current_doc], destination_folder / f"{pdf_name}.pdf")
                 if current_doc + 1 < len(pdf_files):
                     page_as_img, current_doc = viz_next_doc(
                         graph, pdf_files, current_doc
@@ -186,5 +189,3 @@ if __name__ == "__main__":
                         title="Notification",
                     )
                     break
-            else:
-                print("Unhandled event", event, values)
