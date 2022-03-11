@@ -58,6 +58,8 @@ def do_ocr(
     # TODO: Handle different cases with start_point, end_point
     if start_point is None or end_point is None:
         return None
+    elif start_point == end_point:
+        return None
 
     crop = img.crop((*start_point, *end_point))
     text = ocr.ocr(np.asarray(crop), det=False)
@@ -73,12 +75,13 @@ def do_info_update(window, current_doc, total_files, step=1, ocr_text=None):
 if __name__ == "__main__":
     # Prepare the OCR model
     BASE_MODEL_PATH = Path(".paddleocr/2.4/ocr")
+    BASE_PPOCR_UTILS_PATH = Path(".paddleocr/ppocr/utils")
     ocr = PaddleOCR(
-        cls_model_dir=str(BASE_MODEL_PATH / "cls\\ch_ppocr_mobile_v2.0_cls_infer"),
-        det_model_dir=str(BASE_MODEL_PATH / "det\\en\\en_ppocr_mobile_v2.0_det_infer"),
-        rec_model_dir=str(BASE_MODEL_PATH / "rec\\en\\en_number_mobile_v2.0_rec_infer"),
-        e2e_char_dict_path=str(Path("utils/ic15_dict.txt")),
-        rec_char_dict_path=str(Path("utils/en_dict.txt")),
+        cls_model_dir=str(BASE_MODEL_PATH / "cls/ch_ppocr_mobile_v2.0_cls_infer"),
+        det_model_dir=str(BASE_MODEL_PATH / "det/en/en_ppocr_mobile_v2.0_det_infer"),
+        rec_model_dir=str(BASE_MODEL_PATH / "rec/en/en_number_mobile_v2.0_rec_infer"),
+        e2e_char_dict_path=str(BASE_PPOCR_UTILS_PATH / "ic15_dict.txt"),
+        rec_char_dict_path=str(BASE_PPOCR_UTILS_PATH / "en_dict.txt"),
         use_gpu=False,
         use_angle_cls=True,
         lang="en",
@@ -143,6 +146,7 @@ if __name__ == "__main__":
 
         if window == vizWindow:
             if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
+                clean_tmp_dir(page_as_img)
                 vizWindow.close()
                 vizWindow = None
                 mainWindow.un_hide()
@@ -172,12 +176,14 @@ if __name__ == "__main__":
                 if (
                     event == "e"
                     and vizWindow.FindElementWithFocus() == vizWindow["-OCR-STR-"]
-                ):
+                ):  # Handle case where event "e" is in the input box
                     continue
-                clean_tmp_dir(page_as_img)
+
                 pdf_name = values["-OCR-STR-"]
                 save_pdf(pdf_files[current_doc], destination_folder / f"{pdf_name}.pdf")
+
                 if current_doc + 1 < len(pdf_files):
+                    clean_tmp_dir(page_as_img)
                     page_as_img, current_doc = viz_next_doc(
                         graph, pdf_files, current_doc
                     )
@@ -194,6 +200,7 @@ if __name__ == "__main__":
                         "All files have been processed! Exit now...",
                         title="Notification",
                     )
+                    clean_tmp_dir(page_as_img)
                     vizWindow.close()
                     vizWindow = None
                     mainWindow.un_hide()

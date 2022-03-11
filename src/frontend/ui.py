@@ -26,7 +26,9 @@ def get_main_window():
             sg.Cancel(),
         ],
     ]
-    return sg.Window("DOCUMENTS PROCESS AUTOMATION", layout, finalize=True)
+    return sg.Window(
+        "DOCUMENTS PROCESS AUTOMATION - Version 0.0.0", layout, finalize=True
+    )
 
 
 def get_viz_window(height=800, width=800, img_data=None):
