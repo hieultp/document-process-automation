@@ -13,38 +13,17 @@ from src.frontend.ui import get_main_window, get_viz_window
 sg.theme("LightGrey1")
 sg.set_options(dpi_awareness=True)
 
-TMP_DIR = Path(".tmp/")
-
-
-def rm_files(pth: Path):
-    for child in pth.glob("*"):
-        if child.is_file():
-            child.unlink()
-
-
-def init_tmp_dir():
-    try:
-        TMP_DIR.mkdir()
-    except FileExistsError:
-        rm_files(TMP_DIR)
-
-
-def clean_tmp_dir(page_as_img: Image.Image):
-    page_as_img.close()
-    rm_files(TMP_DIR)
-
 
 def get_page_as_img(pdf_file: Document):
     pix: Pixmap = pdf_file.load_page(page_id=0).get_pixmap(matrix=Matrix(2.0, 2.0))
-    pix.save(TMP_DIR / "tmp.png")
-    img = Image.open(TMP_DIR / "tmp.png")
-    return img, pix.tobytes(), pix.height, pix.width
+    img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+    return img, pix.tobytes("ppm")
 
 
 def viz_next_doc(graph: sg.Graph, pdf_files: List[Document], current_doc: int):
     current_doc += 1
     graph.erase()
-    page_as_img, img_data, _, _ = get_page_as_img(pdf_files[current_doc])
+    page_as_img, img_data = get_page_as_img(pdf_files[current_doc])
     graph.draw_image(data=img_data, location=(0, 0))
     return page_as_img, current_doc
 
@@ -136,17 +115,15 @@ if __name__ == "__main__":
                 mainWindow.hide()
 
                 # Init visualization window
-                init_tmp_dir()
-                page_as_img, img_data, height, width = get_page_as_img(
-                    pdf_files[current_doc]
+                page_as_img, img_data = get_page_as_img(pdf_files[current_doc])
+                vizWindow, graph = get_viz_window(
+                    page_as_img.height, page_as_img.width, img_data
                 )
-                vizWindow, graph = get_viz_window(height, width, img_data)
                 vizWindow["-OCR-STR-"].block_focus(block=True)
                 do_info_update(vizWindow, current_doc, len(pdf_files), step)
 
         if window == vizWindow:
             if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
-                clean_tmp_dir(page_as_img)
                 vizWindow.close()
                 vizWindow = None
                 mainWindow.un_hide()
@@ -183,7 +160,6 @@ if __name__ == "__main__":
                 save_pdf(pdf_files[current_doc], destination_folder / f"{pdf_name}.pdf")
 
                 if current_doc + 1 < len(pdf_files):
-                    clean_tmp_dir(page_as_img)
                     page_as_img, current_doc = viz_next_doc(
                         graph, pdf_files, current_doc
                     )
@@ -200,7 +176,6 @@ if __name__ == "__main__":
                         "All files have been processed! Exit now...",
                         title="Notification",
                     )
-                    clean_tmp_dir(page_as_img)
                     vizWindow.close()
                     vizWindow = None
                     mainWindow.un_hide()
