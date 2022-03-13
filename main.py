@@ -20,12 +20,15 @@ def get_page_as_img(pdf_file: Document):
     return img, pix.tobytes("ppm")
 
 
-def viz_next_doc(graph: sg.Graph, pdf_files: List[Document], current_doc: int):
+def viz_next_doc(
+    graph: sg.Graph, pdf_files: List[Document], current_doc: int, img_id: int
+):
     current_doc += 1
-    graph.erase()
+    graph.delete_figure(img_id)
     page_as_img, img_data = get_page_as_img(pdf_files[current_doc])
-    graph.draw_image(data=img_data, location=(0, 0))
-    return page_as_img, current_doc
+    img_id = graph.draw_image(data=img_data, location=(0, 0))
+    graph.send_figure_to_back(img_id)
+    return page_as_img, current_doc, img_id
 
 
 def do_ocr(
@@ -34,21 +37,26 @@ def do_ocr(
     start_point: Tuple[int, int],
     end_point: Tuple[int, int],
 ):
-    # TODO: Handle different cases with start_point, end_point
     if start_point is None or end_point is None:
         return None
-    elif start_point == end_point:
-        return None
 
-    crop = img.crop((*start_point, *end_point))
+    x1, y1 = start_point
+    x2, y2 = end_point
+    if x1 == x2 or y1 == y2:
+        return None
+    if x1 > x2:
+        x1, x2 = x2, x1
+    if y1 > y2:
+        y1, y2 = y2, y1
+
+    crop = img.crop((x1, y1, x2, y2))
     text = ocr.ocr(np.asarray(crop), det=False)
     return text[0][0] if text else None
 
 
 def do_info_update(window, current_doc, total_files, step=1, ocr_text=None):
     window["-INFO-"].update(value=f"Page {current_doc * step + 1}/{total_files * step}")
-    if ocr_text is not None:
-        window["-OCR-STR-"].update(value=text)
+    window["-OCR-STR-"].update(value=text if ocr_text is not None else "")
 
 
 if __name__ == "__main__":
@@ -81,6 +89,7 @@ if __name__ == "__main__":
     pdf_files = None
     current_doc = 0
     page_as_img = None
+    img_id = None
     step = None
     filename = None
 
@@ -116,7 +125,7 @@ if __name__ == "__main__":
 
                 # Init visualization window
                 page_as_img, img_data = get_page_as_img(pdf_files[current_doc])
-                vizWindow, graph = get_viz_window(
+                vizWindow, graph, img_id = get_viz_window(
                     page_as_img.height, page_as_img.width, img_data
                 )
                 vizWindow["-OCR-STR-"].block_focus(block=True)
@@ -148,11 +157,13 @@ if __name__ == "__main__":
 
                 text = do_ocr(ocr, page_as_img, start_point, end_point)
                 do_info_update(window, current_doc, len(pdf_files), step, ocr_text=text)
+
                 dragging = False
+                start_point = end_point = None
             elif event in ("OK", "e"):  # "e,<Enter>" key will behave like an "OK" event
                 if (
                     event == "e"
-                    and vizWindow.FindElementWithFocus() == vizWindow["-OCR-STR-"]
+                    and window.FindElementWithFocus() == window["-OCR-STR-"]
                 ):  # Handle case where event "e" is in the input box
                     continue
 
@@ -160,12 +171,10 @@ if __name__ == "__main__":
                 save_pdf(pdf_files[current_doc], destination_folder / f"{pdf_name}.pdf")
 
                 if current_doc + 1 < len(pdf_files):
-                    page_as_img, current_doc = viz_next_doc(
-                        graph, pdf_files, current_doc
+                    page_as_img, current_doc, img_id = viz_next_doc(
+                        graph, pdf_files, current_doc, img_id
                     )
-                    prior_rect = graph.draw_rectangle(
-                        start_point, end_point, line_color="red"
-                    )
+                    start_point, end_point = graph.get_bounding_box(prior_rect)
                     text = do_ocr(ocr, page_as_img, start_point, end_point)
                     do_info_update(
                         window, current_doc, len(pdf_files), step, ocr_text=text
