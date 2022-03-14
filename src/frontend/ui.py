@@ -63,6 +63,8 @@ def get_viz_window(height=800, width=800, img_data=None):
         element_justification="center",
     )
     if img_data is not None:
-        graph.draw_image(data=img_data, location=(0, 0))
+        img_id = graph.draw_image(data=img_data, location=(0, 0))
+    else:
+        img_id = None
 
-    return window, graph
+    return window, graph, img_id
