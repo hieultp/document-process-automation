@@ -132,6 +132,9 @@ if __name__ == "__main__":
                 do_info_update(vizWindow, current_doc, len(pdf_files), step)
 
         if window == vizWindow:
+            canvas = vizWindow["-COL-"].Widget.canvas
+            # Configured the scroll region if the image is too big
+            canvas.configure(scrollregion=(0, 0, page_as_img.width, page_as_img.height))
             if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
                 vizWindow.close()
                 vizWindow = None
