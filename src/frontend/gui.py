@@ -76,6 +76,11 @@ class GUI:
             self._do_info_update()
 
     def _handle_viz_window_event(self, event, values):
+        canvas = self.vizWindow["-COL-"].Widget.canvas
+        # Configured the scroll region if the image is too big
+        canvas.configure(
+            scrollregion=(0, 0, self.processor.img.width, self.processor.img.height)
+        )
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
             self.vizWindow.close()
             self.vizWindow = None

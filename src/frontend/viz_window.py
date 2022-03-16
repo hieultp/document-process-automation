@@ -13,6 +13,7 @@ def get_viz_window(height=800, width=800, img_data=None):
         expand_x=False,
         expand_y=False,
     )
+
     layout = [
         [
             sg.Text(key="-INFO-", size=(10, 1)),
@@ -21,8 +22,18 @@ def get_viz_window(height=800, width=800, img_data=None):
         [
             sg.OK(size=(10, 1), bind_return_key=True),
             sg.Exit(size=(10, 1)),
+            sg.Button("Zoom In", size=(10, 1), key="-ZOOM-IN-"),
+            sg.Button("Zoom Out", size=(10, 1), key="-ZOOM-OUT-"),
         ],
-        [graph],
+        [
+            sg.Column(
+                [[graph]],
+                background_color="grey",
+                scrollable=True,
+                key="-COL-",
+                size=(800, 900),
+            )
+        ],
     ]
     window = sg.Window(
         "OCR",
