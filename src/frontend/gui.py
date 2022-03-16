@@ -53,11 +53,13 @@ class GUI:
             # In case thang lon Dung khong select gi cả
             if values["-OUT-DIR-"] == "":
                 sg.popup("Please select the destination folder", title="Notification")
+                return
             if values["-IN-PDFS-"] == "":
                 sg.popup(
                     "Please select the PDF files you need to split",
                     title="Notification",
                 )
+                return
 
             # Store the link to destination folder
             self.processor.dst_folder = Path(values["-OUT-DIR-"])
