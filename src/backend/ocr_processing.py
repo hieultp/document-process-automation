@@ -67,3 +67,10 @@ class Processor(PaddleOCR):
         crop = self.img.crop((x1, y1, x2, y2))
         text = super().ocr(np.asarray(crop), det=False)
         return text[0][0] if text else ""
+
+    def reset(self):
+        self.dst_folder: Path = None
+        self.pdf_files: List[Document] = []
+        self.total_docs = 0
+        self.current_doc = -1
+        self.img = None

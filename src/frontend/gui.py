@@ -14,10 +14,12 @@ class GUI:
         # Prepare the UI
         self.mainWindow = get_main_window()
         self.vizWindow = None
+
         self._exit = False
 
         # For visualization window
         self.graph: sg.Graph = None
+        self.scroll_canvas: sg.Canvas = None
         self.total_pages = None
         self.ocr_text: str = ""
 
@@ -43,6 +45,41 @@ class GUI:
             value=f"Page {self.processor.current_doc * self.step + 1}/{self.total_pages}"
         )
         self.vizWindow["-OCR-STR-"].update(value=self.ocr_text)
+
+    def _destroy_viz_window(self):
+        self.vizWindow.close()
+        self.vizWindow = None
+
+        self.graph: sg.Graph = None
+        self.scroll_canvas: sg.Canvas = None
+        self.total_pages = None
+        self.ocr_text: str = ""
+
+        self.dragging = False
+        self.start_point = self.end_point = None
+        self.rect_id = None
+
+        self.img_data = None
+        self.img_id = None
+        self.step = None
+
+        self.mainWindow.un_hide()
+        self.processor.reset()  # FIXME: Find a better way to handle this
+
+    def _init_viz_window(self):
+        self.img_data = next(self.processor)
+        self.vizWindow, self.graph, self.img_id = get_viz_window(
+            self.processor.img.height, self.processor.img.width, self.img_data
+        )
+        self.scroll_canvas = self.vizWindow["-COL-"].Widget.canvas
+
+        # Config the visualization window
+        self.vizWindow["-OCR-STR-"].block_focus(block=True)
+        # Configured the scroll region if the image is too big
+        self.scroll_canvas.configure(
+            scrollregion=(0, 0, self.processor.img.width, self.processor.img.height)
+        )
+        self._do_info_update()
 
     def _handle_main_window_event(self, event, values):
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
@@ -70,23 +107,11 @@ class GUI:
             self.mainWindow.hide()
 
             # Init visualization window
-            self.img_data = next(self.processor)
-            self.vizWindow, self.graph, self.img_id = get_viz_window(
-                self.processor.img.height, self.processor.img.width, self.img_data
-            )
-            self.vizWindow["-OCR-STR-"].block_focus(block=True)
-            self._do_info_update()
+            self._init_viz_window()
 
     def _handle_viz_window_event(self, event, values):
-        canvas = self.vizWindow["-COL-"].Widget.canvas
-        # Configured the scroll region if the image is too big
-        canvas.configure(
-            scrollregion=(0, 0, self.processor.img.width, self.processor.img.height)
-        )
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
-            self.vizWindow.close()
-            self.vizWindow = None
-            self.mainWindow.un_hide()
+            self._destroy_viz_window()
 
         if event == "-GRAPH-":  # if there's a "Graph" event, then it's a mouse
             self.vizWindow["-OCR-STR-"].block_focus(block=True)
@@ -132,9 +157,7 @@ class GUI:
                     "All files have been processed! Exit now...",
                     title="Notification",
                 )
-                self.vizWindow.close()
-                self.vizWindow = None
-                self.mainWindow.un_hide()
+                self._destroy_viz_window()
 
     def show(self):
         while not self._exit:
