@@ -13,7 +13,9 @@ if __name__ == "__main__":
     # Prepare the OCR model
     BASE_MODEL_PATH = Path(".paddleocr/2.4/ocr")
     BASE_PPOCR_UTILS_PATH = Path(".paddleocr/ppocr/utils")
+    DOC2IMG_SCALE = 1.5
     processor = Processor(
+        doc2img_scale=DOC2IMG_SCALE,
         cls_model_dir=str(BASE_MODEL_PATH / "cls/ch_ppocr_mobile_v2.0_cls_infer"),
         det_model_dir=str(BASE_MODEL_PATH / "det/en/en_ppocr_mobile_v2.0_det_infer"),
         rec_model_dir=str(BASE_MODEL_PATH / "rec/en/en_number_mobile_v2.0_rec_infer"),

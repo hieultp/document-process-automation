@@ -10,9 +10,10 @@ from .pdf_processing import save_pdf, split_pdf
 
 
 class Processor(PaddleOCR):
-    def __init__(self, **kwargs):
+    def __init__(self, doc2img_scale: float = 1.25, **kwargs):
         super().__init__(**kwargs)
 
+        self.doc2img_scale = doc2img_scale
         self.dst_folder: Path = None
         self.pdf_files: List[Document] = []
         self.total_docs = 0
@@ -26,7 +27,10 @@ class Processor(PaddleOCR):
     def save_document(self, fname: str):
         save_pdf(self.pdf_files[self.current_doc], self.dst_folder / f"{fname}.pdf")
 
-    def get_doc_as_img(self, doc_idx: int, page: int = 0, scale: float = 1.0):
+    def get_doc_as_img(self, doc_idx: int, page: int = 0, scale: float = None):
+        if scale is None:
+            scale = self.doc2img_scale
+
         pix: Pixmap = (
             self.pdf_files[doc_idx]
             .load_page(page_id=page)
@@ -47,7 +51,7 @@ class Processor(PaddleOCR):
         self,
         start_point: Tuple[int, int],
         end_point: Tuple[int, int],
-    ):
+    ) -> str:
         if start_point is None or end_point is None:
             return None
 
@@ -62,4 +66,4 @@ class Processor(PaddleOCR):
 
         crop = self.img.crop((x1, y1, x2, y2))
         text = super().ocr(np.asarray(crop), det=False)
-        return text[0][0] if text else None
+        return text[0][0] if text else ""
