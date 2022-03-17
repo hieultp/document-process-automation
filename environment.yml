@@ -1,0 +1,12 @@
+name: doc-process-auto
+dependencies:
+  - python=3.8
+  - pip
+  - pip:
+    - paddlepaddle==2.2.2
+    - paddleocr==2.4
+    - pysimplegui
+    - pymupdf
+    - pyinstaller
+    - black
+    - flake8
