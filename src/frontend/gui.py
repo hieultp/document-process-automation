@@ -1,3 +1,4 @@
+import base64
 from pathlib import Path
 
 import PySimpleGUI as sg
@@ -12,7 +13,8 @@ class GUI:
         self.processor = processor
 
         # Prepare the UI
-        self.mainWindow = get_main_window()
+        self._init_app_icon()
+        self.mainWindow = get_main_window(icon=self.icon)
         self.vizWindow = None
 
         self._exit = False
@@ -32,6 +34,11 @@ class GUI:
         self.img_data = None
         self.img_id = None
         self.step = None
+
+    def _init_app_icon(self):
+        # Hardcoded path of the icon
+        with open("utils/icon.png", "rb") as icon_file:
+            self.icon = base64.b64encode(icon_file.read())
 
     def _viz_next_doc(self):
         self.graph.delete_figure(self.img_id)  # Delete old image
@@ -69,7 +76,10 @@ class GUI:
     def _init_viz_window(self):
         self.img_data = next(self.processor)
         self.vizWindow, self.graph, self.img_id = get_viz_window(
-            self.processor.img.height, self.processor.img.width, self.img_data
+            self.processor.img.height,
+            self.processor.img.width,
+            self.img_data,
+            self.icon,
         )
         self.scroll_canvas = self.vizWindow["-COL-"].Widget.canvas
 
