@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List, Tuple
 
+import cv2
 import numpy as np
 from fitz import Document, Matrix, Pixmap
 from paddleocr import PaddleOCR
@@ -65,8 +66,16 @@ class Processor(PaddleOCR):
             y1, y2 = y2, y1
 
         crop = self.img.crop((x1, y1, x2, y2))
-        text = super().ocr(np.asarray(crop), det=False)
-        return text[0][0] if text else ""
+        try:
+            # FIXME:
+            # This is know to have cv2 error due to numerical error in cv2.
+            # The only thing we could do now is to ignore this exception.
+            text = super().ocr(np.asarray(crop), det=False)
+        except cv2.error as error:
+            print(error)
+            return ""
+        else:
+            return text[0][0] if text else ""
 
     def reset(self):
         self.dst_folder: Path = None
