@@ -27,7 +27,7 @@ def get_main_window(icon=None):
         ],
     ]
     return sg.Window(
-        "DOCUMENTS PROCESS AUTOMATION - Version 0.0.0",
+        "DOCUMENTS PROCESS AUTOMATION - Version 1.0.0",
         layout,
         finalize=True,
         icon=icon,
