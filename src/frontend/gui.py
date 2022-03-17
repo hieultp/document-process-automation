@@ -20,6 +20,7 @@ class GUI:
         self.graph: sg.Graph = None
         self.total_pages = None
         self.ocr_text: str = ""
+        self.scale = 1
 
         # Rectangle drawing
         self.dragging = False
@@ -30,6 +31,26 @@ class GUI:
         self.img_data = None
         self.img_id = None
         self.step = None
+        # For zoom in and zoom out function
+        self.new_img_data = None
+        self.new_img_id = None
+
+    def _resize_scroll_region(self, max_width, max_height):
+        canvas = self.vizWindow["-COL-"].Widget.canvas
+        # Configured the scroll region if the image is too big
+        canvas.configure(scrollregion=(0, 0, max_width, max_height))
+
+    def _resize_img(self, scale):
+        self.graph.delete_figure(self.img_id)
+        self.scale = scale
+        self.new_img_data, self.new_img_id = self.processor.get_doc_as_img(
+            self.processor.current_doc, scale=self.scale
+        )
+        self._resize_scroll_region(
+            max_width=self.new_img_data.width, max_height=self.new_img_data.height,
+        )
+        self.graph.set_size(size=(self.new_img_data.width, self.new_img_data.height)) #resize the graph element to fit with new image size
+        self.graph.draw_image(data=self.new_img_id, location=(0, 0))
 
     def _viz_next_doc(self):
         self.graph.delete_figure(self.img_id)  # Delete old image
@@ -78,11 +99,7 @@ class GUI:
             self._do_info_update()
 
     def _handle_viz_window_event(self, event, values):
-        canvas = self.vizWindow["-COL-"].Widget.canvas
-        # Configured the scroll region if the image is too big
-        canvas.configure(
-            scrollregion=(0, 0, self.processor.img.width, self.processor.img.height)
-        )
+        self._resize_scroll_region(self.processor.img.width, self.processor.img.height)
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
             self.vizWindow.close()
             self.vizWindow = None
@@ -108,10 +125,11 @@ class GUI:
 
             self.dragging = False
             self.start_point = self.end_point = None  # enable grabbing a new rect
-        elif event in (
-            "OK",
-            "e",
-        ):  # "e,<Enter>" key will behave like an "OK" event
+        elif event == "-ZOOM-IN-":
+            self._resize_img(scale=min(self.scale + 0.5, 10)) #increment 0.5, maximum zoom is 10 times
+        elif event == "-ZOOM-OUT-":
+            self._resize_img(scale=max(self.scale - 0.5, 1)) #increment 0.5, minimum scale down to 1 times
+        elif event in ("OK", "e",):  # "e,<Enter>" key will behave like an "OK" event
             if (
                 event == "e"
                 and self.vizWindow.FindElementWithFocus() == self.vizWindow["-OCR-STR-"]
@@ -129,8 +147,7 @@ class GUI:
                 self._do_info_update()
             except StopIteration:
                 sg.popup(
-                    "All files have been processed! Exit now...",
-                    title="Notification",
+                    "All files have been processed! Exit now...", title="Notification",
                 )
                 self.vizWindow.close()
                 self.vizWindow = None
