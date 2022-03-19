@@ -48,9 +48,8 @@ class GUI:
         )  # Send new image to the back so that the previous rectangle still shown
 
     def _do_info_update(self):
-        self.vizWindow["-INFO-"].update(
-            value=f"Page {self.processor.current_doc * self.step + 1}/{self.total_pages}"
-        )
+        current_page = self.processor.current_doc * self.step + 1
+        self.vizWindow["-INFO-"].update(value=f"Page {current_page}/{self.total_pages}")
         self.vizWindow["-OCR-STR-"].update(value=self.ocr_text)
 
     def _destroy_viz_window(self):
@@ -112,7 +111,7 @@ class GUI:
             self.processor.dst_folder = Path(values["-OUT-DIR-"])
             self.step = 1 if values["-ONE-PAGE-"] else 3
             self.processor.add_documents(values["-IN-PDFS-"], self.step)
-            self.total_pages = self.processor.total_docs * self.step
+            self.total_pages = self.processor.get_total_pages()
 
             self.mainWindow.hide()
 
