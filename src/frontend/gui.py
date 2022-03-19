@@ -54,6 +54,19 @@ class GUI:
         )
         self.vizWindow["-OCR-STR-"].update(value=self.ocr_text)
 
+    def _save_document(self, filename):
+        # Remove trailing empty spaces that might have
+        # because of user input or bad OCR result
+        filename = filename.strip()
+        if filename == "":
+            sg.popup_error(
+                "Filename cannot be empty!", title="Filename Error", icon=self.icon
+            )
+            return False
+        else:
+            self.processor.save_document(filename)
+            return True
+
     def _destroy_viz_window(self):
         self.vizWindow.close()
         self.vizWindow = None
@@ -166,7 +179,9 @@ class GUI:
             ):  # Handle case where event "e" is in the input box
                 return
 
-            self.processor.save_document(values["-OCR-STR-"])
+            is_saved = self._save_document(values["-OCR-STR-"])
+            if not is_saved:
+                return
             try:
                 self.img_data = next(self.processor)
                 self._viz_next_doc()
