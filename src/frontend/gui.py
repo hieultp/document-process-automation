@@ -185,10 +185,12 @@ class GUI:
             try:
                 self.img_data = next(self.processor)
                 self._viz_next_doc()
-                self.ocr_text = self.processor.ocr(
-                    *self.graph.get_bounding_box(self.rect_id)
-                )
-                self._do_info_update()
+                if self.rect_id:
+                    # Do this step if we have the info of the previous selected region
+                    self.ocr_text = self.processor.ocr(
+                        *self.graph.get_bounding_box(self.rect_id)
+                    )
+                    self._do_info_update()
             except StopIteration:
                 sg.popup(
                     "All files have been processed! Exit now...",
