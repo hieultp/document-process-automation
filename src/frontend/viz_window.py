@@ -16,15 +16,16 @@ def get_viz_window(height=800, width=800, img_data=None, icon=None):
 
     layout = [
         [
-            sg.Text(key="-INFO-", size=(10, 1)),
+            sg.Text(key="-INFO-", size=(18, 1), justification="right"),
             sg.Input(key="-OCR-STR-", size=(20, 1)),
         ],
         [
-            sg.OK(size=(10, 1), bind_return_key=True),
+            sg.OK(size=(10, 1)),
             sg.Exit(size=(10, 1)),
             # sg.Button("Zoom In", size=(10, 1), key="-ZOOM-IN-"),
             # sg.Button("Zoom Out", size=(10, 1), key="-ZOOM-OUT-"),
         ],
+        [sg.HorizontalSeparator()],
         [
             sg.Column(
                 [[graph]],

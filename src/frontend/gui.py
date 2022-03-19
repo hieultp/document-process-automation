@@ -49,7 +49,9 @@ class GUI:
 
     def _do_info_update(self):
         current_page = self.processor.current_doc * self.step + 1
-        self.vizWindow["-INFO-"].update(value=f"Page {current_page}/{self.total_pages}")
+        self.vizWindow["-INFO-"].update(
+            value=f"Page {current_page}/{self.total_pages} | Filename: "
+        )
         self.vizWindow["-OCR-STR-"].update(value=self.ocr_text)
 
     def _destroy_viz_window(self):
@@ -94,15 +96,18 @@ class GUI:
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
             self._exit = True
 
-        elif event == "RUN":
+        elif event == "Run":
             # Errors handling
             # In case thang lon Dung khong select gi cả
-            if values["-OUT-DIR-"] == "":
-                sg.popup("Please select the destination folder", title="Notification")
-                return
             if values["-IN-PDFS-"] == "":
-                sg.popup(
-                    "Please select the PDF files you need to split",
+                sg.popup_ok(
+                    "Please select the PDF file(s) you need to split",
+                    title="Notification",
+                )
+                return
+            if values["-OUT-DIR-"] == "":
+                sg.popup_ok(
+                    "Please select the destination folder to save processed the file(s)",
                     title="Notification",
                 )
                 return

@@ -28,7 +28,7 @@ def get_main_window(icon=None):
             sg.Radio(
                 "Split 3 pages per file", "RADIO1", default=True, key="-THREE-PAGES-"
             ),
-            sg.Button("RUN", pad=((185, 0), (0, 0))),
+            sg.Button("Run", pad=((190, 0), (0, 0))),
             sg.Cancel(),
         ],
     ]
