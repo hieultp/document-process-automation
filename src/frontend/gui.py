@@ -118,16 +118,15 @@ class GUI:
             self.processor.add_documents(values["-IN-PDFS-"], self.step)
             self.total_pages = self.processor.get_total_pages()
 
-            self.mainWindow.hide()
-
             # Init visualization window
+            self.mainWindow.hide()
             self._init_viz_window()
 
     def _handle_viz_window_event(self, event, values):
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
             self._destroy_viz_window()
 
-        if event == "-GRAPH-":  # if there's a "Graph" event, then it's a mouse
+        elif event == "-GRAPH-":  # if there's a "Graph" event, then it's a mouse
             self.vizWindow["-OCR-STR-"].block_focus(block=True)
             x, y = values["-GRAPH-"]
             if not self.dragging:
@@ -141,12 +140,14 @@ class GUI:
                 self.rect_id = self.graph.draw_rectangle(
                     self.start_point, self.end_point, line_color="red"
                 )
+
         elif event.endswith("+UP"):  # The drawing has ended because mouse up
             self.ocr_text = self.processor.ocr(self.start_point, self.end_point)
             self._do_info_update()
 
             self.dragging = False
             self.start_point = self.end_point = None  # enable grabbing a new rect
+
         elif event in (
             "OK",
             "e",
@@ -158,7 +159,6 @@ class GUI:
                 return
 
             self.processor.save_document(values["-OCR-STR-"])
-
             try:
                 self.img_data = next(self.processor)
                 self._viz_next_doc()
