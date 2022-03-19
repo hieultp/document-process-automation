@@ -5,10 +5,16 @@ def get_main_window(icon=None):
     layout = [
         [
             sg.Text(
-                "Choose input PDF files: ", justification="left", pad=((22, 0), (0, 0))
+                "Choose input PDF file(s): ",
+                justification="left",
+                pad=((15, 0), (0, 0)),
             ),
             sg.Input(size=(50, 50), pad=1, disabled=True),
-            sg.FileBrowse(key="-IN-PDFS-", initial_folder="."),
+            sg.FilesBrowse(
+                key="-IN-PDFS-",
+                initial_folder=".",
+                file_types=(("PDF File(s)", "*.pdf"),),
+            ),
         ],
         [
             sg.Text("Choose destination folder: ", justification="left"),
