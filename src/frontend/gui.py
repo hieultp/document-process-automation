@@ -103,12 +103,14 @@ class GUI:
                 sg.popup_ok(
                     "Please select the PDF file(s) you need to split",
                     title="Notification",
+                    icon=self.icon,
                 )
                 return
             if values["-OUT-DIR-"] == "":
                 sg.popup_ok(
                     "Please select the destination folder to save processed the file(s)",
                     title="Notification",
+                    icon=self.icon,
                 )
                 return
 
@@ -124,7 +126,13 @@ class GUI:
 
     def _handle_viz_window_event(self, event, values):
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
-            self._destroy_viz_window()
+            answer = sg.popup_yes_no(
+                "Are you sure you want to quit?",
+                title="Exit Confirmation",
+                icon=self.icon,
+            )
+            if answer == "Yes":
+                self._destroy_viz_window()
 
         elif event == "-GRAPH-":  # if there's a "Graph" event, then it's a mouse
             self.vizWindow["-OCR-STR-"].block_focus(block=True)
