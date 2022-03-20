@@ -34,7 +34,7 @@ def get_viz_window(height=800, width=800, img_data=None):
                 scrollable=True,
                 key="-COL-",
                 size=(800, 900),
-                expand_x= True,
+                expand_x=True,
                 expand_y=True,
             )
         ],
