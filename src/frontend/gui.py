@@ -118,7 +118,7 @@ class GUI:
                 return
             if values["-OUT-DIR-"] == "":
                 sg.popup_ok(
-                    "Please select the destination folder to save processed the file(s)",
+                    "Please select the destination folder to save processed file(s)",
                     title="Notification",
                     icon=self.icon,
                 )
@@ -137,7 +137,7 @@ class GUI:
     def _handle_viz_window_event(self, event, values):
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
             answer = sg.popup_yes_no(
-                "Are you sure you want to quit?",
+                "Are you sure you want to exit?",
                 title="Exit Confirmation",
                 icon=self.icon,
             )
