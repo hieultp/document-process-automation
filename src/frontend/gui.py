@@ -188,7 +188,9 @@ class GUI:
                     self.ocr_text = self.processor.ocr(
                         *self.graph.get_bounding_box(self.rect_id)
                     )
-                    self._do_info_update()
+                else:
+                    self.ocr_text = ""
+                self._do_info_update()
             else:
                 sg.popup(
                     "All files have been processed! Exit now...",
