@@ -192,9 +192,10 @@ class GUI:
                     self.ocr_text = ""
                 self._do_info_update()
             else:
-                sg.popup(
+                sg.popup_ok(
                     "All files have been processed! Exit now...",
                     title="Notification",
+                    icon=self.icon,
                 )
                 self._destroy_viz_window()
 
