@@ -24,6 +24,7 @@ class GUI:
         self.scroll_canvas: sg.Canvas = None
         self.total_pages = None
         self.ocr_text: str = ""
+        self.scale = 1
 
         # Rectangle drawing
         self.dragging = False
@@ -33,6 +34,28 @@ class GUI:
         # Document visualizing
         self.img_data = None
         self.img_id = None
+        self.img = None
+        self.step = None
+
+    def _resize_scroll_region(self, max_width, max_height):
+        canvas = self.vizWindow["-COL-"].Widget.canvas
+        # Configured the scroll region if the image is too big
+        canvas.configure(scrollregion=(0, 0, max_width, max_height))
+
+    def _resize_img(self, scale):
+        self.graph.delete_figure(self.img_id)
+        self.scale = scale
+        self.processor.doc2img_scale = self.scale
+        self.img, self.img_data = self.processor.get_doc_as_img(
+            self.processor.current_doc
+        )
+        self._resize_scroll_region(
+            max_width=self.img.width, max_height=self.img.height,
+        )
+        self.graph.set_size(
+            size=(self.img.width, self.img.height)
+        )  # resize the graph element to fit with new image size
+        self.img_id = self.graph.draw_image(data=self.img_data, location=(0, 0))
 
     def _init_app_icon(self):
         # Hardcoded path of the icon
@@ -46,6 +69,7 @@ class GUI:
         self.graph.send_figure_to_back(
             self.img_id
         )  # Send new image to the back so that the previous rectangle still shown
+        self.graph.set_size(size=(self.img.width, self.img.height))
 
     def _do_info_update(self):
         self.vizWindow["-INFO-"].update(
@@ -87,20 +111,16 @@ class GUI:
         self.processor.reset()  # FIXME: Find a better way to handle this
 
     def _init_viz_window(self):
-        self.img_data = self.processor.next_doc()
+        self.img, self.img_data = self.processor.next_doc()
         self.vizWindow, self.graph, self.img_id = get_viz_window(
             self.processor.img.height,
             self.processor.img.width,
             self.img_data,
         )
-        self.scroll_canvas = self.vizWindow["-COL-"].Widget.canvas
+        self._resize_scroll_region(self.processor.img.width, self.processor.img.height)
 
         # Config the visualization window
         self.vizWindow["-OCR-STR-"].block_focus(block=True)
-        # Configured the scroll region if the image is too big
-        self.scroll_canvas.configure(
-            scrollregion=(0, 0, self.processor.img.width, self.processor.img.height)
-        )
         self._do_info_update()
 
     def _handle_main_window_event(self, event, values):
@@ -170,12 +190,21 @@ class GUI:
         ):  # Handle case where predefined keyboard event is in the input box
             return
 
+        elif event == "-ZOOM-IN-":
+            self._resize_img(
+                scale=min(self.scale + 0.5, 10)
+            )  # increment 0.5, maximum zoom is 10 times
+        elif event == "-ZOOM-OUT-":
+            self._resize_img(
+                scale=max(self.scale - 0.5, 1)
+            )  # increment 0.5, minimum scale down to 1 times
+
         elif event in ("Next", "e"):
             is_saved = self._save_document(values["-OCR-STR-"])
             if not is_saved:
                 return
 
-            self.img_data = self.processor.next_doc()
+            self.img, self.img_data = self.processor.next_doc()
             if self.img_data is not None:
                 self._viz_doc()
                 if self.rect_id:
