@@ -7,7 +7,7 @@ from fitz import Document, Matrix, Pixmap
 from paddleocr import PaddleOCR
 from PIL import Image
 
-from .pdf_processing import save_pdf, split_pdf
+from .pdf_processing import delete_pdf, save_pdf, split_pdf
 
 
 class Processor(PaddleOCR):
@@ -19,10 +19,15 @@ class Processor(PaddleOCR):
         self.pdf_files: List[Document] = []
         self.total_docs = 0
         self.current_doc = -1
+        self.pages_per_doc = 0
+        self.current_page = 1  # Current page in the original pdf
         self.img = None  # Hold current image corresponding to current_doc
+        self.processed_filenames: List[Path] = []
 
-    def add_documents(self, pdf_filepaths, step: int = 1):
-        self.pdf_files += split_pdf(pdf_filepaths, step=step)
+    def add_documents(self, pdf_filepaths, pages_per_doc: int = 1):
+        self.pages_per_doc = pages_per_doc
+        self.current_page -= pages_per_doc
+        self.pdf_files += split_pdf(pdf_filepaths, pages_per_doc)
         self.total_docs += len(self.pdf_files)
 
     def get_total_pages(self, doc_idx=-1):
@@ -37,27 +42,51 @@ class Processor(PaddleOCR):
         return total_pages
 
     def save_document(self, fname: str):
-        save_pdf(self.pdf_files[self.current_doc], self.dst_folder / f"{fname}.pdf")
+        processed_filename = self.dst_folder / f"{fname}.pdf"
+        self.processed_filenames.append(processed_filename)
+        save_pdf(self.pdf_files[self.current_doc], processed_filename)
 
-    def get_doc_as_img(self, doc_idx: int, page: int = 0):
+    def delete_prev_saved_doc(self):
+        fname = self.processed_filenames.pop()
+        delete_pdf(fname, self.pages_per_doc)
+        return fname.stem  # Return only the name of the file (without extension)
+
+    def get_doc_as_img(self, doc_idx: int, page: int = 0, scale: float = None):
+        if scale is None:
+            scale = self.doc2img_scale
+
         pix: Pixmap = (
             self.pdf_files[doc_idx]
             .load_page(page_id=page)
-            .get_pixmap(matrix=Matrix(self.doc2img_scale, self.doc2img_scale))
+            .get_pixmap(matrix=Matrix(scale, scale))
         )
         img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
         img_data = pix.tobytes("ppm")
         return img, img_data
 
-    def __next__(self):
+    def next_doc(self):
         if self.current_doc + 1 < self.total_docs:
             self.current_doc += 1
+            self.current_page += self.pages_per_doc
             self.img, img_data = self.get_doc_as_img(self.current_doc)
-            return self.img, img_data
+            return img_data
         else:
-            raise StopIteration
+            return None
 
-    def ocr(self, start_point: Tuple[int, int], end_point: Tuple[int, int],) -> str:
+    def previous_doc(self):
+        if self.current_doc - 1 < self.total_docs:
+            self.current_doc -= 1
+            self.current_page -= self.pages_per_doc
+            self.img, img_data = self.get_doc_as_img(self.current_doc)
+            return img_data
+        else:
+            return None
+
+    def ocr(
+        self,
+        start_point: Tuple[int, int],
+        end_point: Tuple[int, int],
+    ) -> str:
         if start_point is None or end_point is None:
             return None
 
@@ -87,4 +116,6 @@ class Processor(PaddleOCR):
         self.pdf_files: List[Document] = []
         self.total_docs = 0
         self.current_doc = -1
+        self.pages_per_doc = 0
+        self.current_page = 1
         self.img = None

@@ -14,14 +14,13 @@ class GUI:
 
         # Prepare the UI
         self._init_app_icon()
-        self.mainWindow = get_main_window(icon=self.icon)
+        self.mainWindow = get_main_window()
         self.vizWindow = None
 
         self._exit = False
 
         # For visualization window
         self.graph: sg.Graph = None
-        self.scroll_canvas: sg.Canvas = None
         self.total_pages = None
         self.ocr_text: str = ""
         self.scale = 1
@@ -32,7 +31,6 @@ class GUI:
         self.rect_id = None
 
         # Document visualizing
-        self.img_data = None
         self.img_id = None
         self.img = None
         self.step = None
@@ -57,23 +55,49 @@ class GUI:
         )  # resize the graph element to fit with new image size
         self.img_id = self.graph.draw_image(data=self.img_data, location=(0, 0))
 
+    def _resize_scroll_region(self, max_width, max_height):
+        canvas = self.vizWindow["-COL-"].Widget.canvas
+        # Configured the scroll region if the image is too big
+        canvas.configure(scrollregion=(0, 0, max_width, max_height))
+
+    def _resize_img(self, scale):
+        # Get/update new image and scale value
+        img, img_data = self.processor.get_doc_as_img(
+            self.processor.current_doc, scale=scale
+        )
+        self.processor.doc2img_scale = scale
+        self.processor.img = img
+
+        self._resize_scroll_region(
+            max_width=img.width,
+            max_height=img.height,
+        )
+        self.graph.set_size(
+            size=(img.width, img.height)
+        )  # resize the graph element to fit with new image size
+        self.graph.change_coordinates(
+            graph_bottom_left=(0, img.height),
+            graph_top_right=(img.width, 0),
+        )  # New coordinate so that the select region still return the right coordinate
+        self._viz_doc(img_data)
+
     def _init_app_icon(self):
         # Hardcoded path of the icon
         with open("utils/icon.png", "rb") as icon_file:
-            self.icon = base64.b64encode(icon_file.read())
+            icon = base64.b64encode(icon_file.read())
+        sg.set_global_icon(icon)
 
-    def _viz_next_doc(self):
+    def _viz_doc(self, img_data):
         self.graph.delete_figure(self.img_id)  # Delete old image
-        self.img_id = self.graph.draw_image(data=self.img_data, location=(0, 0))
+        self.img_id = self.graph.draw_image(data=img_data, location=(0, 0))
         self.graph.send_figure_to_back(
             self.img_id
         )  # Send new image to the back so that the previous rectangle still shown
         self.graph.set_size(size=(self.img.width, self.img.height))
 
     def _do_info_update(self):
-        current_page = self.processor.current_doc * self.step + 1
         self.vizWindow["-INFO-"].update(
-            value=f"Page {current_page}/{self.total_pages} | Filename: "
+            value=f"Page {self.processor.current_page}/{self.total_pages} | Filename: "
         )
         self.vizWindow["-OCR-STR-"].update(value=self.ocr_text)
 
@@ -83,7 +107,8 @@ class GUI:
         filename = filename.strip()
         if filename == "":
             sg.popup_error(
-                "Filename cannot be empty!", title="Filename Error", icon=self.icon
+                "Filename cannot be empty!",
+                title="Filename Error",
             )
             return False
         else:
@@ -95,7 +120,6 @@ class GUI:
         self.vizWindow = None
 
         self.graph: sg.Graph = None
-        self.scroll_canvas: sg.Canvas = None
         self.total_pages = None
         self.ocr_text: str = ""
 
@@ -103,22 +127,18 @@ class GUI:
         self.start_point = self.end_point = None
         self.rect_id = None
 
-        self.img_data = None
         self.img_id = None
-        self.step = None
 
         self.mainWindow.un_hide()
         self.processor.reset()  # FIXME: Find a better way to handle this
 
     def _init_viz_window(self):
-        self.img, self.img_data = next(self.processor)
+        img_data = self.processor.next_doc()
         self.vizWindow, self.graph, self.img_id = get_viz_window(
             self.processor.img.height,
             self.processor.img.width,
-            self.img_data,
-            self.icon,
+            img_data,
         )
-        self._resize_scroll_region(self.processor.img.width, self.processor.img.height)
 
         # Config the visualization window
         self.vizWindow["-OCR-STR-"].block_focus(block=True)
@@ -135,21 +155,19 @@ class GUI:
                 sg.popup_ok(
                     "Please select the PDF file(s) you need to split",
                     title="Notification",
-                    icon=self.icon,
                 )
                 return
             if values["-OUT-DIR-"] == "":
                 sg.popup_ok(
-                    "Please select the destination folder to save processed the file(s)",
+                    "Please select the destination folder to save processed file(s)",
                     title="Notification",
-                    icon=self.icon,
                 )
                 return
 
             # Store the link to destination folder
+            pages_per_doc = 1 if values["-ONE-PAGE-"] else 3
             self.processor.dst_folder = Path(values["-OUT-DIR-"])
-            self.step = 1 if values["-ONE-PAGE-"] else 3
-            self.processor.add_documents(values["-IN-PDFS-"], self.step)
+            self.processor.add_documents(values["-IN-PDFS-"], pages_per_doc)
             self.total_pages = self.processor.get_total_pages()
 
             # Init visualization window
@@ -159,9 +177,8 @@ class GUI:
     def _handle_viz_window_event(self, event, values):
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
             answer = sg.popup_yes_no(
-                "Are you sure you want to quit?",
+                "Are you sure you want to exit?",
                 title="Exit Confirmation",
-                icon=self.icon,
             )
             if answer == "Yes":
                 self._destroy_viz_window()
@@ -187,38 +204,61 @@ class GUI:
 
             self.dragging = False
             self.start_point = self.end_point = None  # enable grabbing a new rect
-        elif event == "-ZOOM-IN-":
-            self._resize_img(
-                scale=min(self.scale + 0.5, 10)
-            )  # increment 0.5, maximum zoom is 10 times
-        elif event == "-ZOOM-OUT-":
-            self._resize_img(
-                scale=max(self.scale - 0.5, 1)
-            )  # increment 0.5, minimum scale down to 1 times
-        elif event in ("OK", "e",):  # "e,<Enter>" key will behave like an "OK" event
-            if (
-                event == "e"
-                and self.vizWindow.FindElementWithFocus() == self.vizWindow["-OCR-STR-"]
-            ):  # Handle case where event "e" is in the input box
-                return
 
+        elif (
+            event in ("e", "q")
+            and self.vizWindow.FindElementWithFocus() == self.vizWindow["-OCR-STR-"]
+        ):  # Handle case where predefined keyboard event is in the input box
+            return
+
+        if "ZOOM" in event:
+            if "IN" in event:
+                # Increment 0.5, maximum zoom is 10 times
+                scale = min(self.processor.doc2img_scale + 0.5, 10.0)
+            else:  # Zoom out
+                # Decrement 0.5, minimum scale down to 1 times
+                scale = max(self.processor.doc2img_scale - 0.5, 1.0)
+            self._resize_img(scale)
+
+        elif event in ("Next", "e"):
             is_saved = self._save_document(values["-OCR-STR-"])
             if not is_saved:
                 return
-            try:
-                self.img, self.img_data = next(self.processor)
-                self._viz_next_doc()
+
+            img_data = self.processor.next_doc()
+            if img_data is not None:
+                self._viz_doc(img_data)
                 if self.rect_id:
                     # Do this step if we have the info of the previous selected region
                     self.ocr_text = self.processor.ocr(
                         *self.graph.get_bounding_box(self.rect_id)
                     )
-                    self._do_info_update()
-            except StopIteration:
-                sg.popup(
-                    "All files have been processed! Exit now...", title="Notification",
+                else:
+                    self.ocr_text = ""
+                self._do_info_update()
+            else:
+                sg.popup_ok(
+                    "All files have been processed! Exit now...",
+                    title="Notification",
                 )
                 self._destroy_viz_window()
+
+        elif event in ("Previous", "q"):
+            if self.processor.processed_filenames:
+                answer = sg.popup_yes_no(
+                    "Are you sure you want to go back to the previous page?",
+                    "This will delete all processed files belong to the prior page.",
+                    title="Exit Confirmation",
+                )
+                if answer != "Yes":
+                    return
+
+                prev_filename = self.processor.delete_prev_saved_doc()
+                img_data = self.processor.previous_doc()
+                if img_data is not None:
+                    self._viz_doc(img_data)
+                    self.ocr_text = prev_filename
+                    self._do_info_update()
 
     def show(self):
         while not self._exit:
