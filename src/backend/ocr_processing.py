@@ -7,7 +7,7 @@ from fitz import Document, Matrix, Pixmap
 from paddleocr import PaddleOCR
 from PIL import Image
 
-from .pdf_processing import save_pdf, split_pdf
+from .pdf_processing import delete_pdf, save_pdf, split_pdf
 
 
 class Processor(PaddleOCR):
@@ -22,6 +22,7 @@ class Processor(PaddleOCR):
         self.pages_per_doc = 0
         self.current_page = 1  # Current page in the original pdf
         self.img = None  # Hold current image corresponding to current_doc
+        self.processed_filenames: List[Path] = []
 
     def add_documents(self, pdf_filepaths, pages_per_doc: int = 1):
         self.pages_per_doc = pages_per_doc
@@ -41,7 +42,14 @@ class Processor(PaddleOCR):
         return total_pages
 
     def save_document(self, fname: str):
-        save_pdf(self.pdf_files[self.current_doc], self.dst_folder / f"{fname}.pdf")
+        processed_filename = self.dst_folder / f"{fname}.pdf"
+        self.processed_filenames.append(processed_filename)
+        save_pdf(self.pdf_files[self.current_doc], processed_filename)
+
+    def delete_prev_saved_doc(self):
+        fname = self.processed_filenames.pop()
+        delete_pdf(fname, self.pages_per_doc)
+        return fname.stem  # Return only the name of the file (without extension)
 
     def get_doc_as_img(self, doc_idx: int, page: int = 0, scale: float = None):
         if scale is None:
@@ -59,6 +67,15 @@ class Processor(PaddleOCR):
         if self.current_doc + 1 < self.total_docs:
             self.current_doc += 1
             self.current_page += self.pages_per_doc
+            self.img, img_data = self.get_doc_as_img(self.current_doc)
+            return img_data
+        else:
+            return None
+
+    def previous_doc(self):
+        if self.current_doc - 1 < self.total_docs:
+            self.current_doc -= 1
+            self.current_page -= self.pages_per_doc
             self.img, img_data = self.get_doc_as_img(self.current_doc)
             return img_data
         else:

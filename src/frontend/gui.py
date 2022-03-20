@@ -39,7 +39,7 @@ class GUI:
         with open("utils/icon.png", "rb") as icon_file:
             self.icon = base64.b64encode(icon_file.read())
 
-    def _viz_next_doc(self):
+    def _viz_doc(self):
         self.graph.delete_figure(self.img_id)  # Delete old image
         self.img_id = self.graph.draw_image(data=self.img_data, location=(0, 0))
         self.graph.send_figure_to_back(
@@ -166,23 +166,20 @@ class GUI:
             self.dragging = False
             self.start_point = self.end_point = None  # enable grabbing a new rect
 
-        elif event in (
-            "OK",
-            "e",
-        ):  # "e,<Enter>" key will behave like an "OK" event
-            if (
-                event == "e"
-                and self.vizWindow.FindElementWithFocus() == self.vizWindow["-OCR-STR-"]
-            ):  # Handle case where event "e" is in the input box
-                return
+        elif (
+            event in ("e", "q")
+            and self.vizWindow.FindElementWithFocus() == self.vizWindow["-OCR-STR-"]
+        ):  # Handle case where predefined keyboard event is in the input box
+            return
 
+        elif event in ("Next", "e"):
             is_saved = self._save_document(values["-OCR-STR-"])
             if not is_saved:
                 return
 
             self.img_data = self.processor.next_doc()
             if self.img_data is not None:
-                self._viz_next_doc()
+                self._viz_doc()
                 if self.rect_id:
                     # Do this step if we have the info of the previous selected region
                     self.ocr_text = self.processor.ocr(
@@ -198,6 +195,24 @@ class GUI:
                     icon=self.icon,
                 )
                 self._destroy_viz_window()
+
+        elif event in ("Previous", "q"):
+            if self.processor.processed_filenames:
+                answer = sg.popup_yes_no(
+                    "Are you sure you want to go back to the previous page?",
+                    "This will delete all processed files belong to the prior page.",
+                    title="Exit Confirmation",
+                    icon=self.icon,
+                )
+                if answer != "Yes":
+                    return
+
+                prev_filename = self.processor.delete_prev_saved_doc()
+                self.img_data = self.processor.previous_doc()
+                if self.img_data is not None:
+                    self._viz_doc()
+                    self.ocr_text = prev_filename
+                    self._do_info_update()
 
     def show(self):
         while not self._exit:

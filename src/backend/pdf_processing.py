@@ -35,3 +35,13 @@ def save_pdf(input_pdf: Document, filename: Path):
             doc.save(filename.with_name(current_name))
     else:
         raise ValueError(f"Total pages {total_pages} has not been implemented")
+
+
+def delete_pdf(filename: Path, total_files: int = 1):
+    assert total_files >= 1
+    filename.unlink()
+    if total_files > 1:
+        for suffix in ["co", "bl"]:
+            current_name = f"{filename.stem}{suffix}.pdf"
+            current_filename = filename.with_name(current_name)
+            current_filename.unlink()
