@@ -33,7 +33,6 @@ class GUI:
         # Document visualizing
         self.img_data = None
         self.img_id = None
-        self.step = None
 
     def _init_app_icon(self):
         # Hardcoded path of the icon
@@ -48,9 +47,8 @@ class GUI:
         )  # Send new image to the back so that the previous rectangle still shown
 
     def _do_info_update(self):
-        current_page = self.processor.current_doc * self.step + 1
         self.vizWindow["-INFO-"].update(
-            value=f"Page {current_page}/{self.total_pages} | Filename: "
+            value=f"Page {self.processor.current_page}/{self.total_pages} | Filename: "
         )
         self.vizWindow["-OCR-STR-"].update(value=self.ocr_text)
 
@@ -82,7 +80,6 @@ class GUI:
 
         self.img_data = None
         self.img_id = None
-        self.step = None
 
         self.mainWindow.un_hide()
         self.processor.reset()  # FIXME: Find a better way to handle this
@@ -128,9 +125,9 @@ class GUI:
                 return
 
             # Store the link to destination folder
+            pages_per_doc = 1 if values["-ONE-PAGE-"] else 3
             self.processor.dst_folder = Path(values["-OUT-DIR-"])
-            self.step = 1 if values["-ONE-PAGE-"] else 3
-            self.processor.add_documents(values["-IN-PDFS-"], self.step)
+            self.processor.add_documents(values["-IN-PDFS-"], pages_per_doc)
             self.total_pages = self.processor.get_total_pages()
 
             # Init visualization window

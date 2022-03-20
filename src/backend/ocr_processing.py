@@ -19,10 +19,14 @@ class Processor(PaddleOCR):
         self.pdf_files: List[Document] = []
         self.total_docs = 0
         self.current_doc = -1
+        self.pages_per_doc = 0
+        self.current_page = 1  # Current page in the original pdf
         self.img = None  # Hold current image corresponding to current_doc
 
-    def add_documents(self, pdf_filepaths, step: int = 1):
-        self.pdf_files += split_pdf(pdf_filepaths, step=step)
+    def add_documents(self, pdf_filepaths, pages_per_doc: int = 1):
+        self.pages_per_doc = pages_per_doc
+        self.current_page -= pages_per_doc
+        self.pdf_files += split_pdf(pdf_filepaths, pages_per_doc)
         self.total_docs += len(self.pdf_files)
 
     def get_total_pages(self, doc_idx=-1):
@@ -54,6 +58,7 @@ class Processor(PaddleOCR):
     def next_doc(self):
         if self.current_doc + 1 < self.total_docs:
             self.current_doc += 1
+            self.current_page += self.pages_per_doc
             self.img, img_data = self.get_doc_as_img(self.current_doc)
             return img_data
         else:
@@ -93,4 +98,6 @@ class Processor(PaddleOCR):
         self.pdf_files: List[Document] = []
         self.total_docs = 0
         self.current_doc = -1
+        self.pages_per_doc = 0
+        self.current_page = 1
         self.img = None
