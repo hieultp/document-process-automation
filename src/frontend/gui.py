@@ -71,10 +71,24 @@ class GUI:
         self.graph.set_size(size=(self.img.width, self.img.height))
 
     def _do_info_update(self):
+        current_page = self.processor.current_doc * self.step + 1
         self.vizWindow["-INFO-"].update(
-            value=f"Page {self.processor.current_doc * self.step + 1}/{self.total_pages}"
+            value=f"Page {current_page}/{self.total_pages} | Filename: "
         )
         self.vizWindow["-OCR-STR-"].update(value=self.ocr_text)
+
+    def _save_document(self, filename):
+        # Remove trailing empty spaces that might have
+        # because of user input or bad OCR result
+        filename = filename.strip()
+        if filename == "":
+            sg.popup_error(
+                "Filename cannot be empty!", title="Filename Error", icon=self.icon
+            )
+            return False
+        else:
+            self.processor.save_document(filename)
+            return True
 
     def _destroy_viz_window(self):
         self.vizWindow.close()
@@ -114,16 +128,21 @@ class GUI:
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
             self._exit = True
 
-        elif event == "RUN":
+        elif event == "Run":
             # Errors handling
             # In case thang lon Dung khong select gi cả
-            if values["-OUT-DIR-"] == "":
-                sg.popup("Please select the destination folder", title="Notification")
-                return
             if values["-IN-PDFS-"] == "":
-                sg.popup(
-                    "Please select the PDF files you need to split",
+                sg.popup_ok(
+                    "Please select the PDF file(s) you need to split",
                     title="Notification",
+                    icon=self.icon,
+                )
+                return
+            if values["-OUT-DIR-"] == "":
+                sg.popup_ok(
+                    "Please select the destination folder to save processed the file(s)",
+                    title="Notification",
+                    icon=self.icon,
                 )
                 return
 
@@ -131,18 +150,23 @@ class GUI:
             self.processor.dst_folder = Path(values["-OUT-DIR-"])
             self.step = 1 if values["-ONE-PAGE-"] else 3
             self.processor.add_documents(values["-IN-PDFS-"], self.step)
-            self.total_pages = self.processor.total_docs * self.step
-
-            self.mainWindow.hide()
+            self.total_pages = self.processor.get_total_pages()
 
             # Init visualization window
+            self.mainWindow.hide()
             self._init_viz_window()
 
     def _handle_viz_window_event(self, event, values):
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
-            self._destroy_viz_window()
+            answer = sg.popup_yes_no(
+                "Are you sure you want to quit?",
+                title="Exit Confirmation",
+                icon=self.icon,
+            )
+            if answer == "Yes":
+                self._destroy_viz_window()
 
-        if event == "-GRAPH-":  # if there's a "Graph" event, then it's a mouse
+        elif event == "-GRAPH-":  # if there's a "Graph" event, then it's a mouse
             self.vizWindow["-OCR-STR-"].block_focus(block=True)
             x, y = values["-GRAPH-"]
             if not self.dragging:
@@ -156,6 +180,7 @@ class GUI:
                 self.rect_id = self.graph.draw_rectangle(
                     self.start_point, self.end_point, line_color="red"
                 )
+
         elif event.endswith("+UP"):  # The drawing has ended because mouse up
             self.ocr_text = self.processor.ocr(self.start_point, self.end_point)
             self._do_info_update()
@@ -177,15 +202,18 @@ class GUI:
             ):  # Handle case where event "e" is in the input box
                 return
 
-            self.processor.save_document(values["-OCR-STR-"])
-
+            is_saved = self._save_document(values["-OCR-STR-"])
+            if not is_saved:
+                return
             try:
                 self.img, self.img_data = next(self.processor)
                 self._viz_next_doc()
-                self.ocr_text = self.processor.ocr(
-                    *self.graph.get_bounding_box(self.rect_id)
-                )
-                self._do_info_update()
+                if self.rect_id:
+                    # Do this step if we have the info of the previous selected region
+                    self.ocr_text = self.processor.ocr(
+                        *self.graph.get_bounding_box(self.rect_id)
+                    )
+                    self._do_info_update()
             except StopIteration:
                 sg.popup(
                     "All files have been processed! Exit now...", title="Notification",

@@ -25,6 +25,17 @@ class Processor(PaddleOCR):
         self.pdf_files += split_pdf(pdf_filepaths, step=step)
         self.total_docs += len(self.pdf_files)
 
+    def get_total_pages(self, doc_idx=-1):
+        total_pages = 0
+        if doc_idx == -1:
+            for pdf_file in self.pdf_files:
+                total_pages += pdf_file.page_count
+        elif doc_idx < -1:
+            raise ValueError("Argument doc_idx should not be less than -1")
+        else:
+            total_pages = self.pdf_files[doc_idx].page_count
+        return total_pages
+
     def save_document(self, fname: str):
         save_pdf(self.pdf_files[self.current_doc], self.dst_folder / f"{fname}.pdf")
 

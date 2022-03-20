@@ -1,26 +1,35 @@
 # document-process-automation
-## Requirements:
-Task 1: Create an app that is able to:
-    + Input PDF files.
-    + Split 3 pages into 1 file.
-    + User select the region contains new name.
-    + Rename and save the new PDF files.
 
-    
+## Requirements:
+
+Task 1: Create an app that is able to:
+- Input PDF files.
+- Split 3 pages into 1 file.
+- User select the region contains new name.
+- Rename and save the new PDF files.
+
 Task 2: Create an app that is able to:
-      + Input PDF files.
-      + Split 1 pages into 1 file.
-      + User select the region contains new name.
-      + Rename and save the new PDF files.
+- Input PDF files.
+- Split 1 pages into 1 file.
+- User select the region contains new name.
+- Rename and save the new PDF files.
 
 ## Development environment
+
 ```[bash]
 conda env create -f environment.yml
 conda activate doc-process-auto
 pip install utils\Shapely-1.8.1.post1-cp38-cp38-win_amd64.whl --force-reinstall
+
 ```
 
-# Build EXE files
+# Build EXE file
+The recipe below is derived from the following sources:
+- https://stdworkflow.com/234/how-to-package-paddleocr-program-with-pyinstaller
+- https://blog.csdn.net/aqqwvfbukn/article/details/120553124
+- https://www.jianshu.com/p/0f442a7fda4c
+
+To build the EXE files for Windows, following these steps:
 - Locate where your site-packges folder that contains installed libraries is.
 - Edit "paddle\dataset\image.py" to become:
 ```[python]
@@ -49,9 +58,10 @@ try:
 except ImportError:
     cv2 = None
 ```
-- Edit "paddleocr\ppocr\utils\e2e_utils\pgnet_pp_utils.py"
+
+* Edit "paddleocr\ppocr\utils\e2e_utils\pgnet_pp_utils.py"
 ```[python]
 from .extract_textpoint_slow import *
 from .extract_textpoint_fast import generate_pivot_list_fast, restore_poly
 ```
-- Run `python build_exe.py`
+* Run `python build_exe.py`
