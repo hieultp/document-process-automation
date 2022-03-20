@@ -93,7 +93,6 @@ class GUI:
         self.graph.send_figure_to_back(
             self.img_id
         )  # Send new image to the back so that the previous rectangle still shown
-        self.graph.set_size(size=(self.img.width, self.img.height))
 
     def _do_info_update(self):
         self.vizWindow["-INFO-"].update(
