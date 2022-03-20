@@ -14,7 +14,7 @@ class GUI:
 
         # Prepare the UI
         self._init_app_icon()
-        self.mainWindow = get_main_window(icon=self.icon)
+        self.mainWindow = get_main_window()
         self.vizWindow = None
 
         self._exit = False
@@ -37,7 +37,8 @@ class GUI:
     def _init_app_icon(self):
         # Hardcoded path of the icon
         with open("utils/icon.png", "rb") as icon_file:
-            self.icon = base64.b64encode(icon_file.read())
+            icon = base64.b64encode(icon_file.read())
+        sg.set_global_icon(icon)
 
     def _viz_doc(self):
         self.graph.delete_figure(self.img_id)  # Delete old image
@@ -58,7 +59,8 @@ class GUI:
         filename = filename.strip()
         if filename == "":
             sg.popup_error(
-                "Filename cannot be empty!", title="Filename Error", icon=self.icon
+                "Filename cannot be empty!",
+                title="Filename Error",
             )
             return False
         else:
@@ -90,7 +92,6 @@ class GUI:
             self.processor.img.height,
             self.processor.img.width,
             self.img_data,
-            self.icon,
         )
         self.scroll_canvas = self.vizWindow["-COL-"].Widget.canvas
 
@@ -113,14 +114,12 @@ class GUI:
                 sg.popup_ok(
                     "Please select the PDF file(s) you need to split",
                     title="Notification",
-                    icon=self.icon,
                 )
                 return
             if values["-OUT-DIR-"] == "":
                 sg.popup_ok(
                     "Please select the destination folder to save processed file(s)",
                     title="Notification",
-                    icon=self.icon,
                 )
                 return
 
@@ -139,7 +138,6 @@ class GUI:
             answer = sg.popup_yes_no(
                 "Are you sure you want to exit?",
                 title="Exit Confirmation",
-                icon=self.icon,
             )
             if answer == "Yes":
                 self._destroy_viz_window()
@@ -192,7 +190,6 @@ class GUI:
                 sg.popup_ok(
                     "All files have been processed! Exit now...",
                     title="Notification",
-                    icon=self.icon,
                 )
                 self._destroy_viz_window()
 
@@ -202,7 +199,6 @@ class GUI:
                     "Are you sure you want to go back to the previous page?",
                     "This will delete all processed files belong to the prior page.",
                     title="Exit Confirmation",
-                    icon=self.icon,
                 )
                 if answer != "Yes":
                     return
