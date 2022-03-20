@@ -28,31 +28,25 @@ class Processor(PaddleOCR):
     def save_document(self, fname: str):
         save_pdf(self.pdf_files[self.current_doc], self.dst_folder / f"{fname}.pdf")
 
-    def get_doc_as_img(self, doc_idx: int, page: int = 0, scale: float = None):
-        if scale is None:
-            scale = self.doc2img_scale
-
+    def get_doc_as_img(self, doc_idx: int, page: int = 0):
         pix: Pixmap = (
             self.pdf_files[doc_idx]
             .load_page(page_id=page)
-            .get_pixmap(matrix=Matrix(scale, scale))
+            .get_pixmap(matrix=Matrix(self.doc2img_scale, self.doc2img_scale))
         )
         img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-        return img, pix.tobytes("ppm")
+        img_data = pix.tobytes("ppm")
+        return img, img_data
 
     def __next__(self):
         if self.current_doc + 1 < self.total_docs:
             self.current_doc += 1
             self.img, img_data = self.get_doc_as_img(self.current_doc)
-            return img_data
+            return self.img, img_data
         else:
             raise StopIteration
 
-    def ocr(
-        self,
-        start_point: Tuple[int, int],
-        end_point: Tuple[int, int],
-    ) -> str:
+    def ocr(self, start_point: Tuple[int, int], end_point: Tuple[int, int],) -> str:
         if start_point is None or end_point is None:
             return None
 

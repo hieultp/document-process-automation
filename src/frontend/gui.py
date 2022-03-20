@@ -34,10 +34,8 @@ class GUI:
         # Document visualizing
         self.img_data = None
         self.img_id = None
+        self.img = None
         self.step = None
-        # For zoom in and zoom out function
-        self.new_img_data = None
-        self.new_img_id = None
 
     def _resize_scroll_region(self, max_width, max_height):
         canvas = self.vizWindow["-COL-"].Widget.canvas
@@ -47,14 +45,17 @@ class GUI:
     def _resize_img(self, scale):
         self.graph.delete_figure(self.img_id)
         self.scale = scale
-        self.new_img_data, self.new_img_id = self.processor.get_doc_as_img(
-            self.processor.current_doc, scale=self.scale
+        self.processor.doc2img_scale = self.scale
+        self.img, self.img_data = self.processor.get_doc_as_img(
+            self.processor.current_doc
         )
         self._resize_scroll_region(
-            max_width=self.new_img_data.width, max_height=self.new_img_data.height,
+            max_width=self.img.width, max_height=self.img.height,
         )
-        self.graph.set_size(size=(self.new_img_data.width, self.new_img_data.height)) #resize the graph element to fit with new image size
-        self.graph.draw_image(data=self.new_img_id, location=(0, 0))
+        self.graph.set_size(
+            size=(self.img.width, self.img.height)
+        )  # resize the graph element to fit with new image size
+        self.img_id = self.graph.draw_image(data=self.img_data, location=(0, 0))
 
     def _init_app_icon(self):
         # Hardcoded path of the icon
@@ -67,6 +68,7 @@ class GUI:
         self.graph.send_figure_to_back(
             self.img_id
         )  # Send new image to the back so that the previous rectangle still shown
+        self.graph.set_size(size=(self.img.width, self.img.height))
 
     def _do_info_update(self):
         self.vizWindow["-INFO-"].update(
@@ -95,21 +97,17 @@ class GUI:
         self.processor.reset()  # FIXME: Find a better way to handle this
 
     def _init_viz_window(self):
-        self.img_data = next(self.processor)
+        self.img, self.img_data = next(self.processor)
         self.vizWindow, self.graph, self.img_id = get_viz_window(
             self.processor.img.height,
             self.processor.img.width,
             self.img_data,
             self.icon,
         )
-        self.scroll_canvas = self.vizWindow["-COL-"].Widget.canvas
+        self._resize_scroll_region(self.processor.img.width, self.processor.img.height)
 
         # Config the visualization window
         self.vizWindow["-OCR-STR-"].block_focus(block=True)
-        # Configured the scroll region if the image is too big
-        self.scroll_canvas.configure(
-            scrollregion=(0, 0, self.processor.img.width, self.processor.img.height)
-        )
         self._do_info_update()
 
     def _handle_main_window_event(self, event, values):
@@ -141,7 +139,6 @@ class GUI:
             self._init_viz_window()
 
     def _handle_viz_window_event(self, event, values):
-        self._resize_scroll_region(self.processor.img.width, self.processor.img.height)
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
             self._destroy_viz_window()
 
@@ -166,9 +163,13 @@ class GUI:
             self.dragging = False
             self.start_point = self.end_point = None  # enable grabbing a new rect
         elif event == "-ZOOM-IN-":
-            self._resize_img(scale=min(self.scale + 0.5, 10)) #increment 0.5, maximum zoom is 10 times
+            self._resize_img(
+                scale=min(self.scale + 0.5, 10)
+            )  # increment 0.5, maximum zoom is 10 times
         elif event == "-ZOOM-OUT-":
-            self._resize_img(scale=max(self.scale - 0.5, 1)) #increment 0.5, minimum scale down to 1 times
+            self._resize_img(
+                scale=max(self.scale - 0.5, 1)
+            )  # increment 0.5, minimum scale down to 1 times
         elif event in ("OK", "e",):  # "e,<Enter>" key will behave like an "OK" event
             if (
                 event == "e"
@@ -179,7 +180,7 @@ class GUI:
             self.processor.save_document(values["-OCR-STR-"])
 
             try:
-                self.img_data = next(self.processor)
+                self.img, self.img_data = next(self.processor)
                 self._viz_next_doc()
                 self.ocr_text = self.processor.ocr(
                     *self.graph.get_bounding_box(self.rect_id)
