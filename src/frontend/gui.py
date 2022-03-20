@@ -88,7 +88,7 @@ class GUI:
         self.processor.reset()  # FIXME: Find a better way to handle this
 
     def _init_viz_window(self):
-        self.img_data = next(self.processor)
+        self.img_data = self.processor.next_doc()
         self.vizWindow, self.graph, self.img_id = get_viz_window(
             self.processor.img.height,
             self.processor.img.width,
@@ -182,8 +182,9 @@ class GUI:
             is_saved = self._save_document(values["-OCR-STR-"])
             if not is_saved:
                 return
-            try:
-                self.img_data = next(self.processor)
+
+            self.img_data = self.processor.next_doc()
+            if self.img_data is not None:
                 self._viz_next_doc()
                 if self.rect_id:
                     # Do this step if we have the info of the previous selected region
@@ -191,7 +192,7 @@ class GUI:
                         *self.graph.get_bounding_box(self.rect_id)
                     )
                     self._do_info_update()
-            except StopIteration:
+            else:
                 sg.popup(
                     "All files have been processed! Exit now...",
                     title="Notification",

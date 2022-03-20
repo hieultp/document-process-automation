@@ -51,13 +51,13 @@ class Processor(PaddleOCR):
         img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
         return img, pix.tobytes("ppm")
 
-    def __next__(self):
+    def next_doc(self):
         if self.current_doc + 1 < self.total_docs:
             self.current_doc += 1
             self.img, img_data = self.get_doc_as_img(self.current_doc)
             return img_data
         else:
-            raise StopIteration
+            return None
 
     def ocr(
         self,
