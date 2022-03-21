@@ -34,27 +34,6 @@ class GUI:
         self.img_id = None
         self.img = None
         self.step = None
-
-    def _resize_scroll_region(self, max_width, max_height):
-        canvas = self.vizWindow["-COL-"].Widget.canvas
-        # Configured the scroll region if the image is too big
-        canvas.configure(scrollregion=(0, 0, max_width, max_height))
-
-    def _resize_img(self, scale):
-        self.graph.delete_figure(self.img_id)
-        self.scale = scale
-        self.processor.doc2img_scale = self.scale
-        self.img, self.img_data = self.processor.get_doc_as_img(
-            self.processor.current_doc
-        )
-        self._resize_scroll_region(
-            max_width=self.img.width, max_height=self.img.height,
-        )
-        self.graph.set_size(
-            size=(self.img.width, self.img.height)
-        )  # resize the graph element to fit with new image size
-        self.img_id = self.graph.draw_image(data=self.img_data, location=(0, 0))
-
     def _resize_scroll_region(self, max_width, max_height):
         canvas = self.vizWindow["-COL-"].Widget.canvas
         # Configured the scroll region if the image is too big
@@ -69,15 +48,13 @@ class GUI:
         self.processor.img = img
 
         self._resize_scroll_region(
-            max_width=img.width,
-            max_height=img.height,
+            max_width=img.width, max_height=img.height,
         )
         self.graph.set_size(
             size=(img.width, img.height)
         )  # resize the graph element to fit with new image size
         self.graph.change_coordinates(
-            graph_bottom_left=(0, img.height),
-            graph_top_right=(img.width, 0),
+            graph_bottom_left=(0, img.height), graph_top_right=(img.width, 0),
         )  # New coordinate so that the select region still return the right coordinate
         self._viz_doc(img_data)
 
@@ -93,7 +70,12 @@ class GUI:
         self.graph.send_figure_to_back(
             self.img_id
         )  # Send new image to the back so that the previous rectangle still shown
-        self.graph.set_size(size=(self.processor.img.width,self.processor.img.height))
+        img_width = self.processor.img.width
+        img_height = self.processor.img.height
+        self.graph.set_size(size=(img_width, img_height))
+        self.graph.change_coordinates(
+            graph_bottom_left=(0, img_height), graph_top_right=(img_width, 0)
+        )
 
     def _do_info_update(self):
         self.vizWindow["-INFO-"].update(
@@ -107,8 +89,7 @@ class GUI:
         filename = filename.strip()
         if filename == "":
             sg.popup_error(
-                "Filename cannot be empty!",
-                title="Filename Error",
+                "Filename cannot be empty!", title="Filename Error",
             )
             return False
         else:
@@ -135,9 +116,7 @@ class GUI:
     def _init_viz_window(self):
         img_data = self.processor.next_doc()
         self.vizWindow, self.graph, self.img_id = get_viz_window(
-            self.processor.img.height,
-            self.processor.img.width,
-            img_data,
+            self.processor.img.height, self.processor.img.width, img_data,
         )
 
         # Config the visualization window
@@ -177,8 +156,7 @@ class GUI:
     def _handle_viz_window_event(self, event, values):
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
             answer = sg.popup_yes_no(
-                "Are you sure you want to exit?",
-                title="Exit Confirmation",
+                "Are you sure you want to exit?", title="Exit Confirmation",
             )
             if answer == "Yes":
                 self._destroy_viz_window()
@@ -238,8 +216,7 @@ class GUI:
                 self._do_info_update()
             else:
                 sg.popup_ok(
-                    "All files have been processed! Exit now...",
-                    title="Notification",
+                    "All files have been processed! Exit now...", title="Notification",
                 )
                 self._destroy_viz_window()
 
