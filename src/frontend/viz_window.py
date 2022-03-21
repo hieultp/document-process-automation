@@ -25,6 +25,8 @@ def get_viz_window(height=800, width=800, img_data=None):
             sg.Exit(size=(10, 1)),
             sg.Button("Zoom In", size=(10, 1), key="-ZOOM-IN-"),
             sg.Button("Zoom Out", size=(10, 1), key="-ZOOM-OUT-"),
+            sg.Button("Fit to page",size=(10,1),key="-ZOOM-NORMAL-"),
+            sg.Button("Fit to width", size=(10, 1), key="-FIT-"),
         ],
         [sg.HorizontalSeparator()],
         [
@@ -33,7 +35,6 @@ def get_viz_window(height=800, width=800, img_data=None):
                 background_color="grey",
                 scrollable=True,
                 key="-COL-",
-                size=(800, 900),
                 expand_x=True,
                 expand_y=True,
             )
