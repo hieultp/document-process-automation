@@ -23,7 +23,6 @@ class GUI:
         self.graph: sg.Graph = None
         self.total_pages = None
         self.ocr_text: str = ""
-        self.scale = 1
 
         # Rectangle drawing
         self.dragging = False
@@ -32,8 +31,8 @@ class GUI:
 
         # Document visualizing
         self.img_id = None
-        self.img = None
         self.step = None
+
     def _resize_scroll_region(self, max_width, max_height):
         canvas = self.vizWindow["-COL-"].Widget.canvas
         # Configured the scroll region if the image is too big
@@ -50,12 +49,6 @@ class GUI:
         self._resize_scroll_region(
             max_width=img.width, max_height=img.height,
         )
-        self.graph.set_size(
-            size=(img.width, img.height)
-        )  # resize the graph element to fit with new image size
-        self.graph.change_coordinates(
-            graph_bottom_left=(0, img.height), graph_top_right=(img.width, 0),
-        )  # New coordinate so that the select region still return the right coordinate
         self._viz_doc(img_data)
 
     def _init_app_icon(self):
@@ -112,6 +105,14 @@ class GUI:
 
         self.mainWindow.un_hide()
         self.processor.reset()  # FIXME: Find a better way to handle this
+
+    def _fit_img(self, img_width):
+        col_width = self.vizWindow["-COL-"].get_size()[0]
+        init_scale = self.processor.doc2img_scale
+        scale_x = col_width // (
+            img_width / init_scale
+        )  # The image height will be automatically adjust follow the width
+        self._resize_img(scale_x)
 
     def _init_viz_window(self):
         img_data = self.processor.next_doc()
@@ -188,14 +189,21 @@ class GUI:
             and self.vizWindow.FindElementWithFocus() == self.vizWindow["-OCR-STR-"]
         ):  # Handle case where predefined keyboard event is in the input box
             return
+        elif event == "-FIT-":
+            self._fit_img(self.processor.img.width)
 
         if "ZOOM" in event:
             if "IN" in event:
                 # Increment 0.5, maximum zoom is 10 times
                 scale = min(self.processor.doc2img_scale + 0.5, 10.0)
-            else:  # Zoom out
+            elif "OUT" in event:  # Zoom out
                 # Decrement 0.5, minimum scale down to 1 times
                 scale = max(self.processor.doc2img_scale - 0.5, 1.0)
+            else:
+                col_height = self.vizWindow["-COL-"].get_size()[1]
+                scale = col_height / (
+                    self.processor.img.height / self.processor.doc2img_scale
+                )
             self._resize_img(scale)
 
         elif event in ("Next", "e"):
