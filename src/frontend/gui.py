@@ -6,6 +6,7 @@ from src.backend import Processor
 
 from .main_window import get_main_window
 from .viz_window import get_viz_window
+from .viz_window import get_popup_window
 
 
 class GUI:
@@ -16,6 +17,7 @@ class GUI:
         self._init_app_icon()
         self.mainWindow = get_main_window()
         self.vizWindow = None
+        self.popupWindow = None
 
         self._exit = False
 
@@ -79,19 +81,33 @@ class GUI:
     def _save_document(self, filename):
         # Remove trailing empty spaces that might have
         # because of user input or bad OCR result
+        # FIXME: find a better way for looping character in special_character
+        special_character = ["\\","/",":","*","?","|","<",">"]
         filename = filename.strip()
+        for character in special_character:
+            if character in filename:
+                answer = self._init_popup_notification(
+                "Filename cannot contain special character:\n" + character, title="Error",type="OK"
+                )
+                if answer:
+                    self._clear_popup_notification()
+                    return False
         if filename == "":
-            sg.popup_error(
-                "Filename cannot be empty!", title="Filename Error",
+            answer = self._init_popup_notification(
+                "Filename cannot be empty!", title="Error",type="OK"
             )
-            return False
+            if answer:
+                self._clear_popup_notification()
+                return False
         else:
             self.processor.save_document(filename)
             return True
 
     def _destroy_viz_window(self):
         self.vizWindow.close()
+        self.popupWindow.close()
         self.vizWindow = None
+        self.popupWindow = None
 
         self.graph: sg.Graph = None
         self.total_pages = None
@@ -123,6 +139,16 @@ class GUI:
         # Config the visualization window
         self.vizWindow["-OCR-STR-"].block_focus(block=True)
         self._do_info_update()
+        self.vizWindow.Maximize()  # FIXME: Maximize windoww - use for row 167
+
+    def _init_popup_notification(self, text, title, type=None):
+        self.popupWindow = get_popup_window(text=text, title=title, type=type)
+        user_answers = self.popupWindow.read()[0]
+        return user_answers
+
+    def _clear_popup_notification(self):
+        self.popupWindow.close()
+        self.popupWindow = None
 
     def _handle_main_window_event(self, event, values):
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
@@ -153,14 +179,20 @@ class GUI:
             # Init visualization window
             self.mainWindow.hide()
             self._init_viz_window()
+            self.vizWindow.finalize()
+            self._fit_img(
+                self.processor.img.width
+            )  # FIXME: Did not work, because the program did not take the new column width after maximize
 
     def _handle_viz_window_event(self, event, values):
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
-            answer = sg.popup_yes_no(
-                "Are you sure you want to exit?", title="Exit Confirmation",
+            answer = self._init_popup_notification(
+                "Are you sure you want to exit?", title="Exit",
             )
-            if answer == "Yes":
+            if answer == "-OK-":
                 self._destroy_viz_window()
+            else:
+                self._clear_popup_notification()
 
         elif event == "-GRAPH-":  # if there's a "Graph" event, then it's a mouse
             self.vizWindow["-OCR-STR-"].block_focus(block=True)
@@ -223,21 +255,23 @@ class GUI:
                     self.ocr_text = ""
                 self._do_info_update()
             else:
-                sg.popup_ok(
-                    "All files have been processed! Exit now...", title="Notification",
+                self._init_popup_notification(
+                    "All files have been processed! Exit now...",
+                    title="Notification",
+                    type="OK",
                 )
                 self._destroy_viz_window()
 
         elif event in ("Previous", "q"):
             if self.processor.processed_filenames:
-                answer = sg.popup_yes_no(
-                    "Are you sure you want to go back to the previous page?",
-                    "This will delete all processed files belong to the prior page.",
+                answer = self._init_popup_notification(
+                    "Are you sure you want to go back to the previous page?\nThis will delete all processed files belong to the prior page.",
                     title="Exit Confirmation",
                 )
-                if answer != "Yes":
+                if answer != "-OK-":
+                    self._clear_popup_notification()
                     return
-
+                self._clear_popup_notification()
                 prev_filename = self.processor.delete_prev_saved_doc()
                 img_data = self.processor.previous_doc()
                 if img_data is not None:
