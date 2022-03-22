@@ -1,6 +1,21 @@
 import PySimpleGUI as sg
 
 
+def get_popup_window(text, title="Notification"):
+    noti_layout = [
+        [sg.Text(text=text)],
+        [sg.OK(key="-OK-"), sg.Button("Cancel", key="-CANCEL-"),],
+    ]
+    noti_window = sg.Window(
+        title=title,
+        layout=noti_layout,
+        finalize=True,
+        resizable=False,
+        element_justification="center",
+    )
+    return noti_window
+
+
 def get_viz_window(height=800, width=800, img_data=None):
     graph = sg.Graph(
         canvas_size=(width, height),
@@ -16,17 +31,17 @@ def get_viz_window(height=800, width=800, img_data=None):
 
     layout = [
         [
-            sg.Text(key="-INFO-", size=(18, 1), justification="right"),
-            sg.Input(key="-OCR-STR-", size=(20, 1)),
-        ],
-        [
             sg.Button("Previous", size=(10, 1)),
             sg.Button("Next", size=(10, 1), bind_return_key=True),
             sg.Exit(size=(10, 1)),
             sg.Button("Zoom In", size=(10, 1), key="-ZOOM-IN-"),
             sg.Button("Zoom Out", size=(10, 1), key="-ZOOM-OUT-"),
-            sg.Button("Fit to page",size=(10,1),key="-ZOOM-NORMAL-"),
+            sg.Button("Fit to page", size=(10, 1), key="-ZOOM-NORMAL-"),
             sg.Button("Fit to width", size=(10, 1), key="-FIT-"),
+        ],
+        [
+            sg.Text(key="-INFO-", size=(18, 1), justification="right"),
+            sg.Input(key="-OCR-STR-", size=(20, 1)),
         ],
         [sg.HorizontalSeparator()],
         [
@@ -37,6 +52,7 @@ def get_viz_window(height=800, width=800, img_data=None):
                 key="-COL-",
                 expand_x=True,
                 expand_y=True,
+                element_justification="c",
             )
         ],
     ]
