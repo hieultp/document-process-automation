@@ -1,30 +1,5 @@
 import PySimpleGUI as sg
 
-
-def get_popup_window(text, title="Notification", type=None):
-    if type == None:
-        cancel_visibility = True
-    else:
-        cancel_visibility = False
-    noti_layout = [
-        [sg.Text(text=text)],
-        [
-            sg.OK(key="-OK-", size=(10, 1)),
-            sg.Button(
-                "Cancel", size=(10, 1), key="-CANCEL-", visible=cancel_visibility
-            ),
-        ],
-    ]
-    noti_window = sg.Window(
-        title=title,
-        layout=noti_layout,
-        finalize=True,
-        resizable=False,
-        element_justification="center",
-    )
-    return noti_window
-
-
 def get_viz_window(height=800, width=800, img_data=None):
     graph = sg.Graph(
         canvas_size=(width, height),
