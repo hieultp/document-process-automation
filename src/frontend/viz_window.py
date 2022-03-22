@@ -40,13 +40,17 @@ def get_viz_window(height=800, width=800, img_data=None):
 
     layout = [
         [
-            sg.Button("Previous", size=(10, 1)),
-            sg.Button("Next", size=(10, 1), bind_return_key=True),
-            sg.Exit(size=(10, 1)),
-            sg.Button("Zoom In", size=(10, 1), key="-ZOOM-IN-"),
-            sg.Button("Zoom Out", size=(10, 1), key="-ZOOM-OUT-"),
-            sg.Button("Fit to page", size=(10, 1), key="-ZOOM-NORMAL-"),
-            sg.Button("Fit to width", size=(10, 1), key="-FIT-"),
+            sg.Button("Previous", size=(10, 1), tooltip="Return to previous page"),
+            sg.Button("Next", size=(10, 1), tooltip="Next page", bind_return_key=True),
+            sg.Button("Zoom In", size=(10, 1), tooltip="Zoom in", key="-ZOOM-IN-"),
+            sg.Button("Zoom Out", size=(10, 1), tooltip="Zoom out", key="-ZOOM-OUT-"),
+            sg.Button(
+                "Fit to page", size=(10, 1), tooltip="Fit to page", key="-ZOOM-NORMAL-"
+            ),
+            sg.Button(
+                "Fit to width", size=(10, 1), tooltip="Fit to width", key="-FIT-"
+            ),
+            sg.Exit(size=(10, 1), tooltip="Exit application"),
         ],
         [
             sg.Text(key="-INFO-", size=(18, 1), justification="right"),

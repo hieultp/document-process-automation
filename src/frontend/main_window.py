@@ -14,12 +14,15 @@ def get_main_window():
                 key="-IN-PDFS-",
                 initial_folder=".",
                 file_types=(("PDF File(s)", "*.pdf"),),
+                tooltip="Locate input files",
             ),
         ],
         [
             sg.Text("Choose destination folder: ", justification="left"),
             sg.Input(size=(50, 50), pad=1, disabled=True),
-            sg.FolderBrowse(key="-OUT-DIR-", initial_folder="."),
+            sg.FolderBrowse(
+                key="-OUT-DIR-", initial_folder=".", tooltip="Locate output folder"
+            ),
         ],
         [
             sg.Radio(
@@ -28,12 +31,10 @@ def get_main_window():
             sg.Radio(
                 "Split 3 pages per file", "RADIO1", default=True, key="-THREE-PAGES-"
             ),
-            sg.Button("Run", pad=((190, 0), (0, 0))),
-            sg.Cancel(),
+            sg.Button("Run", pad=((190, 0), (0, 0)), tooltip="Run"),
+            sg.Cancel(tooltip="Exit application"),
         ],
     ]
     return sg.Window(
-        "DOCUMENTS PROCESS AUTOMATION - Version 1.0.0",
-        layout,
-        finalize=True,
+        "DOCUMENTS PROCESS AUTOMATION - Version 1.0.0", layout, finalize=True,
     )
