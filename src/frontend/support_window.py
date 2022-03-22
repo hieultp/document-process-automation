@@ -1,9 +1,27 @@
 import PySimpleGUI as sg
 
 
+def developers_information():
+    developer = "Phuoc Hieu Le\n"
+    email = "hieultp1@gmail.com\n"
+    git_acc = "https://hieultp.github.io/                    " + "\n" #Cheating on size window =))))
+
+    text = f"{developer}{email}{git_acc}"
+    return text
+
+
+def program_information():
+    headlines = "Document Process Automation (DOPA)\n"
+    version = "Version: 2.0.0\n"
+    date_issue = "Date Issue: MM/DD/YYYY\n"
+
+    text = f"{headlines}{version}{date_issue}"
+    return text
+
+
 def menu_bar():
-    menu_def = [["Help"], ["About"]]
-    layout = sg.Menu(menu_def, pad=((5,0),(1,1)))
+    menu_def = [["&Help", ["&Manual", "&About", "&Contacts"]]]
+    layout = sg.Menu(menu_def, pad=((0, 0), (0, 0)), background_color=None)
     return layout
 
 
