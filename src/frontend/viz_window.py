@@ -1,10 +1,19 @@
 import PySimpleGUI as sg
 
 
-def get_popup_window(text, title="Notification"):
+def get_popup_window(text, title="Notification", type=None):
+    if type == None:
+        cancel_visibility = True
+    else:
+        cancel_visibility = False
     noti_layout = [
         [sg.Text(text=text)],
-        [sg.OK(key="-OK-"), sg.Button("Cancel", key="-CANCEL-"),],
+        [
+            sg.OK(key="-OK-", size=(10, 1)),
+            sg.Button(
+                "Cancel", size=(10, 1), key="-CANCEL-", visible=cancel_visibility
+            ),
+        ],
     ]
     noti_window = sg.Window(
         title=title,
