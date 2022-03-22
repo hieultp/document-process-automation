@@ -3,10 +3,12 @@ import PySimpleGUI as sg
 
 def developers_information():
     developer = "Phuoc Hieu Le\n"
+    position = "AI Research Resident\n"
     email = "hieultp1@gmail.com\n"
-    git_acc = "https://hieultp.github.io/                    " + "\n" #Cheating on size window =))))
-
-    text = f"{developer}{email}{git_acc}"
+    git_acc = (
+        "https://hieultp.github.io/                    " + "\n"
+    )  # Cheating on size window =))))
+    text = f"{developer}{position}{email}{git_acc}"
     return text
 
 
@@ -20,7 +22,10 @@ def program_information():
 
 
 def menu_bar():
-    menu_def = [["&Help", ["&Manual", "&About", "&Contacts"]]]
+    menu_def = [
+        ["&File",["&Open"]],
+        ["&Help", ["&Manual", "&About", "&Contacts"]],
+    ]
     layout = sg.Menu(menu_def, pad=((0, 0), (0, 0)), background_color=None)
     return layout
 
