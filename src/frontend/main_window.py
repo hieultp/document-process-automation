@@ -1,7 +1,7 @@
 import PySimpleGUI as sg
 
 
-def get_main_window(icon=None):
+def get_main_window():
     layout = [
         [
             sg.Text(
@@ -36,5 +36,4 @@ def get_main_window(icon=None):
         "DOCUMENTS PROCESS AUTOMATION - Version 1.0.0",
         layout,
         finalize=True,
-        icon=icon,
     )

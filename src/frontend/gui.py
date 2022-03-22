@@ -14,7 +14,7 @@ class GUI:
 
         # Prepare the UI
         self._init_app_icon()
-        self.mainWindow = get_main_window(icon=self.icon)
+        self.mainWindow = get_main_window()
         self.vizWindow = None
 
         self._exit = False
@@ -33,14 +33,14 @@ class GUI:
         # Document visualizing
         self.img_data = None
         self.img_id = None
-        self.step = None
 
     def _init_app_icon(self):
         # Hardcoded path of the icon
         with open("utils/icon.png", "rb") as icon_file:
-            self.icon = base64.b64encode(icon_file.read())
+            icon = base64.b64encode(icon_file.read())
+        sg.set_global_icon(icon)
 
-    def _viz_next_doc(self):
+    def _viz_doc(self):
         self.graph.delete_figure(self.img_id)  # Delete old image
         self.img_id = self.graph.draw_image(data=self.img_data, location=(0, 0))
         self.graph.send_figure_to_back(
@@ -48,9 +48,8 @@ class GUI:
         )  # Send new image to the back so that the previous rectangle still shown
 
     def _do_info_update(self):
-        current_page = self.processor.current_doc * self.step + 1
         self.vizWindow["-INFO-"].update(
-            value=f"Page {current_page}/{self.total_pages} | Filename: "
+            value=f"Page {self.processor.current_page}/{self.total_pages} | Filename: "
         )
         self.vizWindow["-OCR-STR-"].update(value=self.ocr_text)
 
@@ -60,7 +59,8 @@ class GUI:
         filename = filename.strip()
         if filename == "":
             sg.popup_error(
-                "Filename cannot be empty!", title="Filename Error", icon=self.icon
+                "Filename cannot be empty!",
+                title="Filename Error",
             )
             return False
         else:
@@ -82,18 +82,16 @@ class GUI:
 
         self.img_data = None
         self.img_id = None
-        self.step = None
 
         self.mainWindow.un_hide()
         self.processor.reset()  # FIXME: Find a better way to handle this
 
     def _init_viz_window(self):
-        self.img_data = next(self.processor)
+        self.img_data = self.processor.next_doc()
         self.vizWindow, self.graph, self.img_id = get_viz_window(
             self.processor.img.height,
             self.processor.img.width,
             self.img_data,
-            self.icon,
         )
         self.scroll_canvas = self.vizWindow["-COL-"].Widget.canvas
 
@@ -116,21 +114,19 @@ class GUI:
                 sg.popup_ok(
                     "Please select the PDF file(s) you need to split",
                     title="Notification",
-                    icon=self.icon,
                 )
                 return
             if values["-OUT-DIR-"] == "":
                 sg.popup_ok(
-                    "Please select the destination folder to save processed the file(s)",
+                    "Please select the destination folder to save processed file(s)",
                     title="Notification",
-                    icon=self.icon,
                 )
                 return
 
             # Store the link to destination folder
+            pages_per_doc = 1 if values["-ONE-PAGE-"] else 3
             self.processor.dst_folder = Path(values["-OUT-DIR-"])
-            self.step = 1 if values["-ONE-PAGE-"] else 3
-            self.processor.add_documents(values["-IN-PDFS-"], self.step)
+            self.processor.add_documents(values["-IN-PDFS-"], pages_per_doc)
             self.total_pages = self.processor.get_total_pages()
 
             # Init visualization window
@@ -140,9 +136,8 @@ class GUI:
     def _handle_viz_window_event(self, event, values):
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
             answer = sg.popup_yes_no(
-                "Are you sure you want to quit?",
+                "Are you sure you want to exit?",
                 title="Exit Confirmation",
-                icon=self.icon,
             )
             if answer == "Yes":
                 self._destroy_viz_window()
@@ -169,34 +164,51 @@ class GUI:
             self.dragging = False
             self.start_point = self.end_point = None  # enable grabbing a new rect
 
-        elif event in (
-            "OK",
-            "e",
-        ):  # "e,<Enter>" key will behave like an "OK" event
-            if (
-                event == "e"
-                and self.vizWindow.FindElementWithFocus() == self.vizWindow["-OCR-STR-"]
-            ):  # Handle case where event "e" is in the input box
-                return
+        elif (
+            event in ("e", "q")
+            and self.vizWindow.FindElementWithFocus() == self.vizWindow["-OCR-STR-"]
+        ):  # Handle case where predefined keyboard event is in the input box
+            return
 
+        elif event in ("Next", "e"):
             is_saved = self._save_document(values["-OCR-STR-"])
             if not is_saved:
                 return
-            try:
-                self.img_data = next(self.processor)
-                self._viz_next_doc()
+
+            self.img_data = self.processor.next_doc()
+            if self.img_data is not None:
+                self._viz_doc()
                 if self.rect_id:
                     # Do this step if we have the info of the previous selected region
                     self.ocr_text = self.processor.ocr(
                         *self.graph.get_bounding_box(self.rect_id)
                     )
-                    self._do_info_update()
-            except StopIteration:
-                sg.popup(
+                else:
+                    self.ocr_text = ""
+                self._do_info_update()
+            else:
+                sg.popup_ok(
                     "All files have been processed! Exit now...",
                     title="Notification",
                 )
                 self._destroy_viz_window()
+
+        elif event in ("Previous", "q"):
+            if self.processor.processed_filenames:
+                answer = sg.popup_yes_no(
+                    "Are you sure you want to go back to the previous page?",
+                    "This will delete all processed files belong to the prior page.",
+                    title="Exit Confirmation",
+                )
+                if answer != "Yes":
+                    return
+
+                prev_filename = self.processor.delete_prev_saved_doc()
+                self.img_data = self.processor.previous_doc()
+                if self.img_data is not None:
+                    self._viz_doc()
+                    self.ocr_text = prev_filename
+                    self._do_info_update()
 
     def show(self):
         while not self._exit:

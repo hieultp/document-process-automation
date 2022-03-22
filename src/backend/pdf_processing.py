@@ -3,16 +3,16 @@ from pathlib import Path
 from fitz import Document
 
 
-def split_pdf(inputDir: str, step: int = 1):
-    assert step >= 1, "step can only be positive number"
+def split_pdf(inputDir: str, pages_per_doc: int = 1):
+    assert pages_per_doc >= 1, "pages_per_doc can only be positive number"
     results = []
     for file in map(Path, inputDir.split(";")):
         input_pdf: Document = Document(file)
         total_pages = input_pdf.page_count
-        assert total_pages >= step
-        for i in range(0, total_pages, step):
+        assert total_pages >= pages_per_doc
+        for i in range(0, total_pages, pages_per_doc):
             doc = Document()
-            doc.insert_pdf(input_pdf, from_page=i, to_page=i + step - 1)
+            doc.insert_pdf(input_pdf, from_page=i, to_page=i + pages_per_doc - 1)
             results.append(doc)
 
     return results
@@ -35,3 +35,13 @@ def save_pdf(input_pdf: Document, filename: Path):
             doc.save(filename.with_name(current_name))
     else:
         raise ValueError(f"Total pages {total_pages} has not been implemented")
+
+
+def delete_pdf(filename: Path, total_files: int = 1):
+    assert total_files >= 1
+    filename.unlink()
+    if total_files > 1:
+        for suffix in ["co", "bl"]:
+            current_name = f"{filename.stem}{suffix}.pdf"
+            current_filename = filename.with_name(current_name)
+            current_filename.unlink()
