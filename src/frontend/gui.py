@@ -6,7 +6,9 @@ from src.backend import Processor
 
 from .main_window import get_main_window
 from .viz_window import get_viz_window
-from .viz_window import get_popup_window
+from .support_window import get_popup_window
+from .support_window import program_information
+from.support_window import developers_information
 
 
 class GUI:
@@ -82,19 +84,21 @@ class GUI:
         # Remove trailing empty spaces that might have
         # because of user input or bad OCR result
         # FIXME: find a better way for looping character in special_character
-        special_character = ["\\","/",":","*","?","|","<",">"]
+        special_character = ["\\", "/", ":", "*", "?", "|", "<", ">"]
         filename = filename.strip()
         for character in special_character:
             if character in filename:
                 answer = self._init_popup_notification(
-                "Filename cannot contain special character:\n" + character, title="Error",type="OK"
+                    "Filename cannot contain special character:\n" + character,
+                    title="Error",
+                    type="OK",
                 )
                 if answer:
                     self._clear_popup_notification()
                     return False
         if filename == "":
             answer = self._init_popup_notification(
-                "Filename cannot be empty!", title="Error",type="OK"
+                "Filename cannot be empty!", title="Error", type="OK"
             )
             if answer:
                 self._clear_popup_notification()
@@ -149,26 +153,54 @@ class GUI:
     def _clear_popup_notification(self):
         self.popupWindow.close()
         self.popupWindow = None
-
+    def _handle_menu_bar_event(self,event):
+        if event == "About":
+            answer = self._init_popup_notification(
+                program_information(), title="DOPA", type="OK"
+                )
+            if answer:
+                self._clear_popup_notification()
+                return
+        elif event == "Manual":
+            answer = self._init_popup_notification(
+                "This program is easy to use, no need for manual", title="DOPA", type="OK"
+                )
+            if answer:
+                self._clear_popup_notification()
+                return
+        elif event == "Contacts":
+            answer = self._init_popup_notification(developers_information()
+                , title="Contacts", type="OK"
+                )
+            if answer:
+                self._clear_popup_notification()
+                return
     def _handle_main_window_event(self, event, values):
         if event in (sg.WIN_CLOSED, "Exit", "Cancel"):
             self._exit = True
-
+        elif event in ("About","Manual","Contacts"):
+            self._handle_menu_bar_event(event=event)
         elif event == "Run":
             # Errors handling
             # In case thang lon Dung khong select gi cả
             if values["-IN-PDFS-"] == "":
-                sg.popup_ok(
+                answer = self._init_popup_notification(
                     "Please select the PDF file(s) you need to split",
                     title="Notification",
+                    type="OK",
                 )
-                return
+                if answer:
+                    self._clear_popup_notification()
+                    return
             if values["-OUT-DIR-"] == "":
-                sg.popup_ok(
+                answer = self._init_popup_notification(
                     "Please select the destination folder to save processed file(s)",
                     title="Notification",
+                    type="OK",
                 )
-                return
+                if answer:
+                    self._clear_popup_notification()
+                    return
 
             # Store the link to destination folder
             pages_per_doc = 1 if values["-ONE-PAGE-"] else 3
