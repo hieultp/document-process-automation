@@ -61,7 +61,8 @@ class Processor(PaddleOCR):
             .get_pixmap(matrix=Matrix(scale, scale))
         )
         img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-        return img, pix.tobytes("ppm")
+        img_data = pix.tobytes("ppm")
+        return img, img_data
 
     def next_doc(self):
         if self.current_doc + 1 < self.total_docs:
